@@ -1,0 +1,3 @@
+python-docx
+# optional for PDF export
+docx2pdf
