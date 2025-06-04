@@ -6,6 +6,7 @@ steps required to update an ABNFF Journal Word document from one issue to the ne
 The `journal_updater.py` script uses `python-docx` to modify a base Word document and
 applies new text and article content from a provided folder. Once the document is
 updated it can optionally be exported to PDF using `docx2pdf`.
+
 Many helper functions are provided so that future automation steps can call them
 individually (e.g. `update_front_cover`, `update_page2_header`, `clear_articles`,
 and more). Most advanced operations are currently placeholders but documented
