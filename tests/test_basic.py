@@ -2,7 +2,6 @@ import sys
 import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import journal_updater.journal_updater as journal_updater
 
 
@@ -19,7 +18,6 @@ def test_replace_text():
     paragraphs = [FakeParagraph("2023 subscription info"), FakeParagraph("nothing")]
     journal_updater.replace_text_in_paragraphs(paragraphs, "2023", "")
     assert paragraphs[0].runs[0].text == " subscription info"
-
 
 def test_load_and_update_front_cover(tmp_path):
     doc_path = tmp_path / "base.docx"

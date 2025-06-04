@@ -16,8 +16,7 @@ def load_document(path: Path) -> Document:
 def save_document(doc: Document, path_out: Path) -> None:
     """Save ``doc`` to ``path_out``."""
     doc.save(str(path_out))
-
-
+    
 def replace_text_in_paragraphs(paragraphs, search_text, replace_text):
     for p in paragraphs:
         if search_text in p.text:
@@ -25,7 +24,6 @@ def replace_text_in_paragraphs(paragraphs, search_text, replace_text):
             for i in range(len(inline)):
                 if search_text in inline[i].text:
                     inline[i].text = inline[i].text.replace(search_text, replace_text)
-
 
 def update_front_cover(
     doc: Document,
@@ -46,8 +44,7 @@ def update_front_cover(
             for run in p.runs:
                 run.font.bold = True
             break
-
-
+            
 def update_business_information(
     doc: Document, old_year: str, new_beginning_text: str
 ) -> None:
@@ -133,7 +130,6 @@ def clear_articles(doc: Document):
 def append_article(doc: Document, article_doc: Document):
     for element in article_doc.element.body:
         doc.element.body.append(element)
-
 
 def reuse_journal_page(doc: Document, source_doc: Document, page_number: int) -> None:
     """Copy the specified page from ``source_doc`` into ``doc``."""
@@ -282,7 +278,6 @@ def validate_issue_number_and_volume(doc: Document, expected_volume: str, expect
     """Check volume/issue/year text appears once and matches expectations."""
     pass
 
-
 def save_pdf(doc_path: Path, pdf_path: Path):
     try:
         from docx2pdf import convert
@@ -314,10 +309,8 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
         append_article(doc, article_doc)
 
     save_document(doc, output_path)
-
     pdf_path = output_path.with_suffix(".pdf")
     save_pdf(output_path, pdf_path)
-
 
 def main_from_gui(base_doc: Path, content_folder: Path, output_doc: Path) -> None:
     """Helper for GUI front-end."""
@@ -336,7 +329,6 @@ def main():
     output_path = Path(args.output_doc)
 
     update_journal(base_path, content_path, output_path)
-
 
 if __name__ == "__main__":
     main()
