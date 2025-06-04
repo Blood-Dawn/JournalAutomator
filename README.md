@@ -12,6 +12,15 @@ individually (e.g. `update_front_cover`, `update_page2_header`, `clear_articles`
 and more). Most advanced operations are currently placeholders but documented
 for future work.
 
+For non‑technical users a small Tkinter GUI is provided. Launch it with:
+
+```
+python -m journal_updater.gui
+```
+
+The window lets you choose the base DOCX, the content folder, and where the
+output should be saved. Clicking **Run Update** performs the same steps as the
+command line script.
 ## Usage
 
 ```

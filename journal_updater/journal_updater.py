@@ -24,7 +24,7 @@ def replace_text_in_paragraphs(paragraphs, search_text, replace_text):
             for i in range(len(inline)):
                 if search_text in inline[i].text:
                     inline[i].text = inline[i].text.replace(search_text, replace_text)
-                    
+
 def update_front_cover(
     doc: Document,
     volume: str,
@@ -44,7 +44,7 @@ def update_front_cover(
             for run in p.runs:
                 run.font.bold = True
             break
-        
+            
 def update_business_information(
     doc: Document, old_year: str, new_beginning_text: str
 ) -> None:
@@ -130,7 +130,7 @@ def clear_articles(doc: Document):
 def append_article(doc: Document, article_doc: Document):
     for element in article_doc.element.body:
         doc.element.body.append(element)
-        
+
 def reuse_journal_page(doc: Document, source_doc: Document, page_number: int) -> None:
     """Copy the specified page from ``source_doc`` into ``doc``."""
     # Complex page-level manipulation is not implemented; placeholder only.
@@ -277,7 +277,7 @@ def apply_page_borders(doc: Document, start_section: int, border_specs) -> None:
 def validate_issue_number_and_volume(doc: Document, expected_volume: str, expected_issue: str, expected_year: str) -> None:
     """Check volume/issue/year text appears once and matches expectations."""
     pass
-  
+
 def save_pdf(doc_path: Path, pdf_path: Path):
     try:
         from docx2pdf import convert
@@ -286,20 +286,16 @@ def save_pdf(doc_path: Path, pdf_path: Path):
         print(f"PDF export failed: {e}")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Update ABNFF Journal document")
-    parser.add_argument("base_doc")
-    parser.add_argument("content_folder")
-    parser.add_argument("output_doc")
-    args = parser.parse_args()
-
-    base_path = Path(args.base_doc)
-    content_path = Path(args.content_folder)
-    output_path = Path(args.output_doc)
+def update_journal(base_path: Path, content_path: Path, output_path: Path) -> None:
+    """Run the update process with explicit paths."""
     doc = load_document(base_path)
 
     update_front_cover(doc, "1", "1", "June 2025", "Update Articles", 1)
-    update_business_information(doc, "2023", "Annual subscription rates are: institutions $550, individuals $220, and students $110")
+    update_business_information(
+        doc,
+        "2023",
+        "Annual subscription rates are: institutions $550, individuals $220, and students $110",
+    )
     update_page2_header(doc, "Volume 1, Issue 1\nJune 2025\nUpdate Articles and Editorials", 2)
 
     pres_message_path = content_path / "president_message.txt"
@@ -316,6 +312,23 @@ def main():
     pdf_path = output_path.with_suffix(".pdf")
     save_pdf(output_path, pdf_path)
 
+def main_from_gui(base_doc: Path, content_folder: Path, output_doc: Path) -> None:
+    """Helper for GUI front-end."""
+    update_journal(base_doc, content_folder, output_doc)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Update ABNFF Journal document")
+    parser.add_argument("base_doc")
+    parser.add_argument("content_folder")
+    parser.add_argument("output_doc")
+    args = parser.parse_args()
+
+    base_path = Path(args.base_doc)
+    content_path = Path(args.content_folder)
+    output_path = Path(args.output_doc)
+
+    update_journal(base_path, content_path, output_path)
 
 if __name__ == "__main__":
     main()
