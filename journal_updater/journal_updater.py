@@ -10,6 +10,7 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+
 def load_document(path: Path) -> Document:
     """Open the Word file at ``path`` and return a ``Document`` object."""
     return Document(str(path))
@@ -18,7 +19,8 @@ def load_document(path: Path) -> Document:
 def save_document(doc: Document, path_out: Path) -> None:
     """Save ``doc`` to ``path_out``."""
     doc.save(str(path_out))
-    
+
+
 def replace_text_in_paragraphs(paragraphs, search_text, replace_text):
     for p in paragraphs:
         if search_text in p.text:
@@ -26,6 +28,7 @@ def replace_text_in_paragraphs(paragraphs, search_text, replace_text):
             for i in range(len(inline)):
                 if search_text in inline[i].text:
                     inline[i].text = inline[i].text.replace(search_text, replace_text)
+
 
 def update_front_cover(
     doc: Document,
@@ -66,7 +69,8 @@ def update_front_cover(
                 except Exception:
                     pass
             break
-            
+
+
 def update_business_information(
     doc: Document, old_year: str, new_beginning_text: str
 ) -> None:
@@ -111,9 +115,10 @@ def layout_footer(doc: Document) -> None:
     """Center footers across all sections."""
     for section in doc.sections:
         footer = section.footer
-        paragraph = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+        paragraph = (
+            footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+        )
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
 
 
 def update_associate_editors(
@@ -146,7 +151,9 @@ def update_assistant_editors(doc: Document, remove_name: str) -> None:
             break
 
 
-def insert_presidents_message(doc: Document, image_path: Path, message_text: str) -> None:
+def insert_presidents_message(
+    doc: Document, image_path: Path, message_text: str
+) -> None:
     """Insert the president's message and optional image on page 3."""
 
     text = message_text if message_text else "<<Awaiting President's message>>"
@@ -215,7 +222,7 @@ def clear_articles(doc: Document):
                 continue
             if el is end_el:
                 break
-            tag = el.tag.rsplit('}', 1)[-1]
+            tag = el.tag.rsplit("}", 1)[-1]
             if tag in ("p", "tbl"):
                 body.remove(el)
 
@@ -242,7 +249,9 @@ def clear_articles(doc: Document):
         start_paragraphs = [doc.paragraphs[i] for i in start_indices]
         for idx in reversed(range(len(start_paragraphs))):
             start_p = start_paragraphs[idx]
-            end_p = start_paragraphs[idx + 1] if idx + 1 < len(start_paragraphs) else None
+            end_p = (
+                start_paragraphs[idx + 1] if idx + 1 < len(start_paragraphs) else None
+            )
             remove_range(start_p, end_p)
         return
 
@@ -261,14 +270,15 @@ def clear_articles(doc: Document):
 def clear_articles_preserve_editorials(doc: Document) -> None:
     """Remove article content while keeping editorial sections."""
 
-    headings = ["President's Message", "First Editorial", "Second Editorial"]
+    headings = ["President's Message"]
     pages = map_pages_to_paragraphs(doc)
     para_index = {id(p): i for i, p in enumerate(doc.paragraphs)}
 
     last_editorial_page = 0
     for page_num, paragraphs in pages.items():
         for p in paragraphs:
-            if p.text.strip().lower() in [h.lower() for h in headings]:
+            text = p.text.strip().lower()
+            if text in [h.lower() for h in headings] or "editorial" in text:
                 if page_num > last_editorial_page:
                     last_editorial_page = page_num
 
@@ -337,7 +347,10 @@ def delete_after_page(doc: Document, page_number: int) -> None:
         body.remove(elem)
         elem = next_elem
 
-def apply_basic_formatting(doc: Document, font_size: Optional[int], line_spacing: Optional[float]) -> None:
+
+def apply_basic_formatting(
+    doc: Document, font_size: Optional[int], line_spacing: Optional[float]
+) -> None:
     """Set font size and line spacing across all paragraphs."""
     for p in doc.paragraphs:
         if line_spacing is not None:
@@ -358,7 +371,9 @@ def find_article_files(content_path: Path) -> List[Path]:
     files = sorted(
         p
         for p in content_path.iterdir()
-        if p.is_file() and p.name.lower().startswith(pattern) and p.suffix.lower() == ".docx"
+        if p.is_file()
+        and p.name.lower().startswith(pattern)
+        and p.suffix.lower() == ".docx"
     )
     if not files:
         logging.warning(
@@ -367,7 +382,7 @@ def find_article_files(content_path: Path) -> List[Path]:
     return files
 
 
-def map_pages_to_paragraphs(doc: Document) -> Dict[int, List['Paragraph']]:
+def map_pages_to_paragraphs(doc: Document) -> Dict[int, List["Paragraph"]]:
     """Return a mapping of page numbers to paragraph objects.
 
     The detection relies on explicit ``w:br`` elements with ``w:type="page"``
@@ -375,7 +390,7 @@ def map_pages_to_paragraphs(doc: Document) -> Dict[int, List['Paragraph']]:
     pagination depends solely on layout, the mapping may be inaccurate.
     """
 
-    pages: Dict[int, List['Paragraph']] = {1: []}
+    pages: Dict[int, List["Paragraph"]] = {1: []}
     current_page = 1
     for p in doc.paragraphs:
         pages.setdefault(current_page, []).append(p)
@@ -430,6 +445,7 @@ def format_front_and_footer(
                 for run in p.runs:
                     run.font.size = Pt(font_size)
 
+
 def reuse_journal_page(doc: Document, source_doc: Document, page_number: int) -> None:
     """Copy the specified page from ``source_doc`` into ``doc``."""
     # Complex page-level manipulation is not implemented; placeholder only.
@@ -451,7 +467,9 @@ def add_editor_titles(doc: Document, page: int, editor_titles: List[str]) -> Non
     pass
 
 
-def remove_extra_spaces_in_author_line(doc: Document, page: int, article_index: int) -> None:
+def remove_extra_spaces_in_author_line(
+    doc: Document, page: int, article_index: int
+) -> None:
     """Collapse multiple spaces in the given author line."""
     pass
 
@@ -461,7 +479,9 @@ def await_presidents_message_placeholder(doc: Document, page: int) -> None:
     pass
 
 
-def update_author_line(doc: Document, page: int, old_name: str, new_name_with_creds: str) -> None:
+def update_author_line(
+    doc: Document, page: int, old_name: str, new_name_with_creds: str
+) -> None:
     """Replace the author line on the given page."""
     pass
 
@@ -476,32 +496,48 @@ def convert_table_to_landscape(doc: Document, page: int, table_index: int) -> No
     pass
 
 
-def move_paragraph_to_next_column(doc: Document, page: int, column_index: int, paragraph_text_match: str) -> None:
+def move_paragraph_to_next_column(
+    doc: Document, page: int, column_index: int, paragraph_text_match: str
+) -> None:
     """Move a paragraph to the next column if it matches the text."""
     pass
 
 
-def fix_apostrophe(doc: Document, page: int, search_word: str, correct_word: str) -> None:
+def fix_apostrophe(
+    doc: Document, page: int, search_word: str, correct_word: str
+) -> None:
     """Replace a word with a corrected apostrophe."""
     replace_text_in_paragraphs(doc.paragraphs, search_word, correct_word)
 
 
-def insert_line_space_before_subheading(doc: Document, page: int, subheading_list: Iterable[str]) -> None:
+def insert_line_space_before_subheading(
+    doc: Document, page: int, subheading_list: Iterable[str]
+) -> None:
     """Ensure a blank line before each subheading on the page."""
     pass
 
 
-def move_section_to_next_column(doc: Document, page: int, column_index: int, section_heading: str) -> None:
+def move_section_to_next_column(
+    doc: Document, page: int, column_index: int, section_heading: str
+) -> None:
     """Move a section starting with heading to the next column."""
     pass
 
 
-def insert_line_space_before_paragraph(doc: Document, page: int, preceding_text: str, new_paragraph_label: str) -> None:
+def insert_line_space_before_paragraph(
+    doc: Document, page: int, preceding_text: str, new_paragraph_label: str
+) -> None:
     """Insert a blank line before the paragraph that matches ``new_paragraph_label``."""
     pass
 
 
-def indent_paragraph(doc: Document, page: int, column_index: int, paragraph_index: int, indent_width: float) -> None:
+def indent_paragraph(
+    doc: Document,
+    page: int,
+    column_index: int,
+    paragraph_index: int,
+    indent_width: float,
+) -> None:
     """Apply left indent to a paragraph."""
     pass
 
@@ -516,7 +552,9 @@ def insert_line_space_before(doc: Document, page: int, subheading: str) -> None:
     pass
 
 
-def fix_separation_line_between_sections(doc: Document, page: int, line_shape_criteria) -> None:
+def fix_separation_line_between_sections(
+    doc: Document, page: int, line_shape_criteria
+) -> None:
     """Ensure a solid line separates sections."""
     pass
 
@@ -532,14 +570,22 @@ def fix_page_numbering(doc: Document) -> None:
 
 
 def apply_hanging_indent_to_references(
-    doc: Document, page_range_start: int, page_range_end: int, indent_width: float, line_spacing: float
+    doc: Document,
+    page_range_start: int,
+    page_range_end: int,
+    indent_width: float,
+    line_spacing: float,
 ) -> None:
     """Apply hanging indent formatting to reference lists."""
     pass
 
 
 def normalize_table_formatting(
-    doc: Document, page: int, table_index: int, desired_font_size: int, desired_line_spacing: float
+    doc: Document,
+    page: int,
+    table_index: int,
+    desired_font_size: int,
+    desired_line_spacing: float,
 ) -> None:
     """Normalize fonts and spacing in tables."""
     pass
@@ -558,12 +604,16 @@ def detect_and_remove_extra_spaces(
                     run.text = run.text.replace(pattern, " ")
 
 
-def ensure_blank_line_before_headings(doc: Document, page_range: Iterable[int], heading_list: Iterable[str]) -> None:
+def ensure_blank_line_before_headings(
+    doc: Document, page_range: Iterable[int], heading_list: Iterable[str]
+) -> None:
     """Ensure exactly one blank line precedes each heading."""
     pass
 
 
-def split_long_paragraphs_across_columns(doc: Document, page: int, column_count: int) -> None:
+def split_long_paragraphs_across_columns(
+    doc: Document, page: int, column_count: int
+) -> None:
     """Attempt to split long paragraphs across columns."""
     pass
 
@@ -632,7 +682,9 @@ def apply_page_borders(doc: Document, start_section: int, border_specs) -> None:
             continue
 
         # Use high level API when available
-        if hasattr(section, "page_setup") and hasattr(section.page_setup, "left_border"):
+        if hasattr(section, "page_setup") and hasattr(
+            section.page_setup, "left_border"
+        ):
             ps = section.page_setup
             for side, spec in specs.items():
                 try:
@@ -777,8 +829,9 @@ def apply_footer_layout(doc: Document, volume: str, issue: str, year: str) -> No
             r.font.color.rgb = RGBColor(0, 0, 0)
 
 
-
-def validate_issue_number_and_volume(doc: Document, expected_volume: str, expected_issue: str, expected_year: str) -> None:
+def validate_issue_number_and_volume(
+    doc: Document, expected_volume: str, expected_issue: str, expected_year: str
+) -> None:
     """Check volume/issue/year text appears once and matches expectations."""
 
     search = f"Volume {expected_volume}, Issue {expected_issue}"
@@ -794,9 +847,11 @@ def validate_issue_number_and_volume(doc: Document, expected_volume: str, expect
     if count_block != 1 or count_year != 1:
         raise ValueError("Volume/issue/year text not found exactly once")
 
+
 def save_pdf(doc_path: Path, pdf_path: Path):
     try:
         from docx2pdf import convert
+
         convert(str(doc_path), str(pdf_path))
     except Exception as e:
         print(f"PDF export failed: {e}")
@@ -812,8 +867,13 @@ def update_journal(
     section_title: str,
     cover_page_num: int = 1,
     header_page_num: int = 2,
+    article_files: Optional[List[Path]] = None,
 ) -> None:
-    """Run the update process with explicit paths and parameters."""
+    """Run the update process and append ``article_files`` if provided.
+
+    If ``article_files`` is ``None`` new articles are discovered using
+    :func:`find_article_files` within ``content_path``.
+    """
     doc = load_document(base_path)
     instructions = load_instructions(content_path)
 
@@ -833,7 +893,10 @@ def update_journal(
     clear_articles_preserve_editorials(doc)
 
     start_idx = len(doc.paragraphs)
-    for article_file in find_article_files(content_path):
+    files = (
+        article_files if article_files is not None else find_article_files(content_path)
+    )
+    for article_file in files:
         article_doc = Document(article_file)
         append_article(doc, article_doc)
     if "font_size" in instructions:
@@ -852,6 +915,7 @@ def update_journal(
     pdf_path = output_path.with_suffix(".pdf")
     save_pdf(output_path, pdf_path)
 
+
 def main_from_gui(
     base_doc: Path,
     content_folder: Path,
@@ -862,6 +926,7 @@ def main_from_gui(
     section_title: str,
     cover_page_num: int = 1,
     header_page_num: int = 2,
+    article_files: Optional[List[Path]] = None,
 ) -> None:
     """Helper for GUI front-end."""
     update_journal(
@@ -874,7 +939,9 @@ def main_from_gui(
         section_title,
         cover_page_num,
         header_page_num,
+        article_files,
     )
+
 
 def main():
     parser = argparse.ArgumentParser(description="Update ABNFF Journal document")
@@ -907,7 +974,9 @@ def main():
         args.section_title,
         args.cover_page,
         args.header_page,
+        None,
     )
+
 
 if __name__ == "__main__":
     main()
