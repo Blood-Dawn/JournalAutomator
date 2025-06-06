@@ -1,6 +1,7 @@
 """Utility functions for updating ABNFF journal Word documents."""
 
 import argparse
+import json
 from pathlib import Path
 from typing import Iterable, List, Optional
 
@@ -125,6 +126,46 @@ def clear_articles(doc: Document):
     if found:
         for _ in range(len(doc.paragraphs) - start_idx):
             doc.paragraphs.pop()
+
+
+def load_instructions(content_path: Path) -> dict:
+    """Load instructions from ``instructions.json`` if present."""
+    inst_file = content_path / "instructions.json"
+    if inst_file.exists():
+        try:
+            with inst_file.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Failed to read instructions: {e}")
+    return {}
+
+
+def delete_after_page(doc: Document, page_number: int) -> None:
+    """Remove all content after the paragraph containing ``Page {page_number}``."""
+    search = f"Page {page_number}"
+    target = None
+    for p in doc.paragraphs:
+        if search in p.text:
+            target = p
+            break
+    if target is None:
+        return
+    body = target._element.getparent()
+    elem = target._element.getnext()
+    while elem is not None:
+        next_elem = elem.getnext()
+        body.remove(elem)
+        elem = next_elem
+
+
+def apply_basic_formatting(doc: Document, font_size: Optional[int], line_spacing: Optional[float]) -> None:
+    """Set font size and line spacing across all paragraphs."""
+    for p in doc.paragraphs:
+        if line_spacing is not None:
+            p.paragraph_format.line_spacing = line_spacing
+        for run in p.runs:
+            if font_size is not None:
+                run.font.size = Pt(font_size)
 
 
 def append_article(doc: Document, article_doc: Document):
@@ -362,13 +403,21 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
     """Run the update process with explicit paths."""
     doc = load_document(base_path)
 
-    update_front_cover(doc, "1", "1", "June 2025", "Update Articles", 1)
+    instructions = load_instructions(content_path)
+
+    volume = instructions.get("volume", "1")
+    issue = instructions.get("issue", "1")
+    delete_page = instructions.get("delete_after_page")
+    font_size = instructions.get("font_size")
+    line_spacing = instructions.get("line_spacing")
+
+    update_front_cover(doc, volume, issue, "June 2025", "Update Articles", 1)
     update_business_information(
         doc,
         "2023",
         "Annual subscription rates are: institutions $550, individuals $220, and students $110",
     )
-    update_page2_header(doc, "Volume 1, Issue 1\nJune 2025\nUpdate Articles and Editorials", 2)
+    update_page2_header(doc, f"Volume {volume}, Issue {issue}\nJune 2025\nUpdate Articles and Editorials", 2)
 
     pres_message_path = content_path / "president_message.txt"
     message_text = pres_message_path.read_text() if pres_message_path.exists() else ""
@@ -379,6 +428,11 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
     for article_file in sorted(content_path.glob("article*.docx")):
         article_doc = Document(article_file)
         append_article(doc, article_doc)
+
+    if isinstance(delete_page, int):
+        delete_after_page(doc, delete_page)
+
+    apply_basic_formatting(doc, font_size, line_spacing)
 
     save_document(doc, output_path)
     pdf_path = output_path.with_suffix(".pdf")
