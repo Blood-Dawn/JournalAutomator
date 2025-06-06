@@ -14,4 +14,4 @@ def test_delete_after_page():
 
     ju.delete_after_page(doc, 1)
     texts = [p.text for p in doc.paragraphs]
-    assert texts == ["Page 1"]
+    assert texts == ["Keep this"]

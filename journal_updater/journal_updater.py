@@ -325,26 +325,41 @@ def load_instructions(content_path: Path) -> dict:
 
 
 def delete_after_page(doc: Document, page_number: int) -> None:
-    """Remove all content after the paragraph containing ``Page {page_number}``."""
-    search = f"Page {page_number}"
-    target = None
-    for p in doc.paragraphs:
-        if search in p.text:
-            target = p
+    """Remove all paragraphs after ``page_number``.
+
+    The function relies on :func:`map_pages_to_paragraphs` to determine the first
+    paragraph of the next page and deletes everything that follows.
+    """
+
+    pages = map_pages_to_paragraphs(doc)
+
+    # Find the first page that comes after ``page_number``
+    next_page = None
+    for num in sorted(pages):
+        if num > page_number:
+            next_page = num
             break
-    if target is None:
-        if page_number == 1 and doc.paragraphs:
-            target = doc.paragraphs[0]
-            if search not in target.text:
-                target.text = search
-        else:
-            return
-    body = target._element.getparent()
-    elem = target._element.getnext()
-    while elem is not None:
-        next_elem = elem.getnext()
-        body.remove(elem)
-        elem = next_elem
+
+    if next_page is None:
+        return
+
+    paragraphs = pages.get(next_page)
+    if not paragraphs:
+        return
+
+    first_el = paragraphs[0]._element
+    idx = None
+    for i, p in enumerate(doc.paragraphs):
+        if p._element is first_el:
+            idx = i
+            break
+
+    if idx is None:
+        return
+
+    while len(doc.paragraphs) > idx:
+        el = doc.paragraphs[idx]._element
+        el.getparent().remove(el)
 
 
 def remove_pages_from(doc: Document, start_page: int) -> int:
