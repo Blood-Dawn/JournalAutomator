@@ -1,8 +1,5 @@
 {
   "font_size": 12,
   "line_spacing": 1.5,
-  "format_front_and_footer": {
-    "font_size": 14,
-    "line_spacing": 1.2
-  }
+  "delete_after_page": 1
 }
