@@ -3,7 +3,7 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from docx import Document
 from docx.shared import Pt
@@ -252,6 +252,24 @@ def append_article(doc: Document, article_doc: Document):
         doc.element.body.append(element)
 
 
+def map_pages_to_paragraphs(doc: Document) -> Dict[int, List['Paragraph']]:
+    """Return a mapping of page numbers to paragraph objects.
+
+    The detection relies on explicit ``w:br`` elements with ``w:type="page"``
+    inserted by Word when a manual page break is present. If the document
+    pagination depends solely on layout, the mapping may be inaccurate.
+    """
+
+    pages: Dict[int, List['Paragraph']] = {1: []}
+    current_page = 1
+    for p in doc.paragraphs:
+        pages.setdefault(current_page, []).append(p)
+        if p._element.xpath('.//w:br[@w:type="page"]'):
+            current_page += 1
+            pages.setdefault(current_page, [])
+    return pages
+
+
 def set_font_size(doc: Document, start_paragraph: int, size: int) -> None:
     """Apply ``size`` point font to paragraphs starting at ``start_paragraph``."""
     for p in doc.paragraphs[start_paragraph:]:
@@ -379,12 +397,17 @@ def normalize_table_formatting(
     pass
 
 
-def detect_and_remove_extra_spaces(doc: Document, page_range: Iterable[int], pattern: str = "  ") -> None:
-    """Collapse multiple spaces across the given page range."""
-    for p in doc.paragraphs:
-        if pattern in p.text:
-            while pattern in p.text:
-                p.text = p.text.replace(pattern, " ")
+def detect_and_remove_extra_spaces(
+    doc: Document, page_range: Iterable[int], pattern: str = "  "
+) -> None:
+    """Collapse multiple spaces across paragraphs in ``page_range``."""
+
+    pages = map_pages_to_paragraphs(doc)
+    for page_num in page_range:
+        for p in pages.get(page_num, []):
+            for run in p.runs:
+                while pattern in run.text:
+                    run.text = run.text.replace(pattern, " ")
 
 
 def ensure_blank_line_before_headings(doc: Document, page_range: Iterable[int], heading_list: Iterable[str]) -> None:
