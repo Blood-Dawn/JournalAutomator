@@ -24,7 +24,7 @@ command line script.
 ## Usage
 
 ```
-python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER OUTPUT_DOCX
+python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER [OUTPUT_DOCX]
 ```
 
 - **BASE_DOCX**: path to the previous issue's Word file (e.g. December 2024).
@@ -32,7 +32,9 @@ python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER OUTPUT_DOCX
   include:
   - `president_message.txt` – new President's Message text.
   - `article*.docx` – Word documents for each new article.
-- **OUTPUT_DOCX**: path where the updated June issue should be saved.
+- **OUTPUT_DOCX** *(optional)*: path where the updated issue should be saved.
+  If omitted, the script writes the result next to `BASE_DOCX` with
+  `"_updated.docx"` appended to the name.
 
 The script performs a handful of automated replacements:
 
