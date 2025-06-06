@@ -20,6 +20,9 @@ def run_gui():
     month_year = tk.StringVar()
     cover_page = tk.IntVar(value=1)
     start_page = tk.IntVar(value=3)
+    font_size = tk.StringVar()
+    line_spacing = tk.StringVar()
+    font_family = tk.StringVar()
 
     def choose_base():
         path = filedialog.askopenfilename(
@@ -68,6 +71,9 @@ def run_gui():
             return
         try:
             output_arg = Path(selected_output.get()) if selected_output.get() else None
+            fs = int(font_size.get()) if font_size.get() else None
+            ls = float(line_spacing.get()) if line_spacing.get() else None
+            ff = font_family.get() or None
             journal_updater.main_from_gui(
                 Path(selected_base.get()),
                 Path(selected_content.get()),
@@ -78,6 +84,9 @@ def run_gui():
                 cover_page.get(),
                 start_page.get(),
                 [Path(p) for p in selected_articles] if selected_articles else None,
+                font_size=fs,
+                line_spacing=ls,
+                font_family=ff,
             )
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update journal: {e}")
@@ -129,6 +138,15 @@ def run_gui():
     row += 1
     tk.Label(frm, text="Start Page #:").grid(row=row, column=0, sticky="e")
     tk.Entry(frm, textvariable=start_page).grid(row=row, column=1, sticky="ew")
+    row += 1
+    tk.Label(frm, text="Font Size:").grid(row=row, column=0, sticky="e")
+    tk.Entry(frm, textvariable=font_size).grid(row=row, column=1, sticky="ew")
+    row += 1
+    tk.Label(frm, text="Line Spacing:").grid(row=row, column=0, sticky="e")
+    tk.Entry(frm, textvariable=line_spacing).grid(row=row, column=1, sticky="ew")
+    row += 1
+    tk.Label(frm, text="Font Family:").grid(row=row, column=0, sticky="e")
+    tk.Entry(frm, textvariable=font_family).grid(row=row, column=1, sticky="ew")
     row += 1
 
     tk.Button(frm, text="Run Update", command=run_update).grid(
