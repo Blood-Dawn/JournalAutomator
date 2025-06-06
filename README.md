@@ -24,7 +24,7 @@ command line script.
 ## Usage
 
 ```
-python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER OUTPUT_DOCX
+python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER [OUTPUT_DOCX]
 ```
 
 - **BASE_DOCX**: path to the previous issue's Word file (e.g. December 2024).
@@ -32,7 +32,9 @@ python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER OUTPUT_DOCX
   include:
   - `president_message.txt` – new President's Message text.
   - `article*.docx` – Word documents for each new article.
-- **OUTPUT_DOCX**: path where the updated June issue should be saved.
+- **OUTPUT_DOCX** *(optional)*: path where the updated issue should be saved.
+  If omitted, the script writes the result next to `BASE_DOCX` with
+  `"_updated.docx"` appended to the name.
 
 The script performs a handful of automated replacements:
 
@@ -47,3 +49,28 @@ The script performs a handful of automated replacements:
 
 The implementation is intentionally minimal and serves as a starting
 point for further automation as outlined in the program goals.
+
+### instructions.json
+
+An optional `instructions.json` file may be placed in the content folder to
+control certain aspects of the update. Supported keys are:
+
+- `volume` – volume number for the issue.
+- `issue` – issue number.
+- `delete_after_page` – remove all content after this page number.
+- `font_size` – default font size to apply to all text (in points).
+- `line_spacing` – line spacing value (e.g. `1.0` or `1.15`).
+
+Example file:
+
+```json
+{
+  "volume": "2",
+  "issue": "3",
+  "delete_after_page": 2,
+  "font_size": 10,
+  "line_spacing": 1.0
+}
+```
+
+If no file is present, default values are used.

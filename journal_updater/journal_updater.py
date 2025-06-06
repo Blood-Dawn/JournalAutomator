@@ -1,6 +1,7 @@
 """Utility functions for updating ABNFF journal Word documents."""
 
 import argparse
+import json
 from pathlib import Path
 from typing import Iterable, List, Optional
 
@@ -125,6 +126,46 @@ def clear_articles(doc: Document):
     if found:
         for _ in range(len(doc.paragraphs) - start_idx):
             doc.paragraphs.pop()
+
+
+def load_instructions(content_path: Path) -> dict:
+    """Load instructions from ``instructions.json`` if present."""
+    inst_file = content_path / "instructions.json"
+    if inst_file.exists():
+        try:
+            with inst_file.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Failed to read instructions: {e}")
+    return {}
+
+
+def delete_after_page(doc: Document, page_number: int) -> None:
+    """Remove all content after the paragraph containing ``Page {page_number}``."""
+    search = f"Page {page_number}"
+    target = None
+    for p in doc.paragraphs:
+        if search in p.text:
+            target = p
+            break
+    if target is None:
+        return
+    body = target._element.getparent()
+    elem = target._element.getnext()
+    while elem is not None:
+        next_elem = elem.getnext()
+        body.remove(elem)
+        elem = next_elem
+
+
+def apply_basic_formatting(doc: Document, font_size: Optional[int], line_spacing: Optional[float]) -> None:
+    """Set font size and line spacing across all paragraphs."""
+    for p in doc.paragraphs:
+        if line_spacing is not None:
+            p.paragraph_format.line_spacing = line_spacing
+        for run in p.runs:
+            if font_size is not None:
+                run.font.size = Pt(font_size)
 
 
 def append_article(doc: Document, article_doc: Document):
@@ -282,9 +323,81 @@ def update_table_of_contents(doc: Document) -> None:
     pass
 
 
+def apply_two_column_layout(doc: Document, start_page: int) -> None:
+    """Set sections starting at ``start_page`` to use two text columns."""
+
+    try:
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        return
+
+    for idx, section in enumerate(doc.sections):
+        if idx + 1 < start_page:
+            continue
+
+        # Prefer new API if available
+        if hasattr(section, "text_columns"):
+            try:
+                section.text_columns.set_num(2)
+                section.text_columns.spacing = Pt(36)  # ensure a small gap
+            except Exception:
+                pass
+            continue
+
+        sectPr = section._sectPr
+        cols = sectPr.find(qn("w:cols"))
+        if cols is None:
+            cols = OxmlElement("w:cols")
+            cols.set(qn("w:space"), "720")
+            sectPr.append(cols)
+        cols.set(qn("w:num"), "2")
+
+
 def apply_page_borders(doc: Document, start_section: int, border_specs) -> None:
     """Apply borders to pages starting at ``start_section``."""
     pass
+
+
+def add_page_borders(doc: Document, start_section: int) -> None:
+    """Add solid left and right borders for sections from ``start_section``."""
+
+    try:
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        return
+
+    for idx, section in enumerate(doc.sections):
+        if idx < start_section:
+            continue
+
+        if hasattr(section, "page_setup") and hasattr(section.page_setup, "left_border"):  # type: ignore[attr-defined]
+            try:
+                ps = section.page_setup
+                ps.left_border = ps.right_border = {
+                    "val": "single",
+                    "sz": 4,
+                    "space": 0,
+                    "color": "000000",
+                }
+                continue
+            except Exception:
+                pass
+
+        sectPr = section._sectPr
+        for existing in sectPr.findall(qn("w:pgBorders")):
+            sectPr.remove(existing)
+        pgBorders = OxmlElement("w:pgBorders")
+        pgBorders.set(qn("w:offsetFrom"), "text")
+        for side in ("left", "right"):
+            border = OxmlElement(f"w:{side}")
+            border.set(qn("w:val"), "single")
+            border.set(qn("w:sz"), "4")
+            border.set(qn("w:space"), "0")
+            border.set(qn("w:color"), "000000")
+            pgBorders.append(border)
+        sectPr.append(pgBorders)
 
 
 def validate_issue_number_and_volume(doc: Document, expected_volume: str, expected_issue: str, expected_year: str) -> None:
@@ -302,7 +415,6 @@ def save_pdf(doc_path: Path, pdf_path: Path):
 def update_journal(base_path: Path, content_path: Path, output_path: Path) -> None:
     """Run the update process with explicit paths."""
     doc = load_document(base_path)
-
     instr_path = content_path / "instructions.json"
     instructions = {}
     if instr_path.exists():
@@ -316,7 +428,7 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
         "2023",
         "Annual subscription rates are: institutions $550, individuals $220, and students $110",
     )
-    update_page2_header(doc, "Volume 1, Issue 1\nJune 2025\nUpdate Articles and Editorials", 2)
+    update_page2_header(doc, f"Volume {volume}, Issue {issue}\nJune 2025\nUpdate Articles and Editorials", 2)
 
     pres_message_path = content_path / "president_message.txt"
     message_text = pres_message_path.read_text() if pres_message_path.exists() else ""
@@ -328,7 +440,6 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
     for article_file in sorted(content_path.glob("article*.docx")):
         article_doc = Document(article_file)
         append_article(doc, article_doc)
-
     if "font_size" in instructions:
         set_font_size(doc, start_idx, int(instructions["font_size"]))
     if "line_spacing" in instructions:
@@ -338,21 +449,43 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
     pdf_path = output_path.with_suffix(".pdf")
     save_pdf(output_path, pdf_path)
 
-def main_from_gui(base_doc: Path, content_folder: Path, output_doc: Path) -> None:
-    """Helper for GUI front-end."""
-    update_journal(base_doc, content_folder, output_doc)
+def main_from_gui(
+    base_doc: Path, content_folder: Path, output_doc: Optional[Path] = None
+) -> None:
+    """Helper for GUI front-end.
+
+    If ``output_doc`` is not provided, the resulting file will be saved next to
+    ``base_doc`` with ``_updated`` appended to the original file name.
+    """
+    target = (
+        output_doc
+        if output_doc is not None
+        else base_doc.with_name(base_doc.stem + "_updated.docx")
+    )
+    update_journal(base_doc, content_folder, target)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Update ABNFF Journal document")
     parser.add_argument("base_doc")
     parser.add_argument("content_folder")
-    parser.add_argument("output_doc")
+    parser.add_argument(
+        "output_doc",
+        nargs="?",
+        help=(
+            "Path to save the updated DOCX. Defaults to <base_doc> with "
+            "'_updated.docx' appended"
+        ),
+    )
     args = parser.parse_args()
 
     base_path = Path(args.base_doc)
     content_path = Path(args.content_folder)
-    output_path = Path(args.output_doc)
+    output_path = (
+        Path(args.output_doc)
+        if args.output_doc
+        else base_path.with_name(base_path.stem + "_updated.docx")
+    )
 
     update_journal(base_path, content_path, output_path)
 

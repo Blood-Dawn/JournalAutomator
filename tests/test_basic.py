@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import journal_updater.journal_updater as journal_updater
