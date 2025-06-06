@@ -6,8 +6,10 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 def load_document(path: Path) -> Document:
     """Open the Word file at ``path`` and return a ``Document`` object."""
@@ -35,15 +37,35 @@ def update_front_cover(
     page_num: int,
 ) -> None:
     """Update volume/issue block on the front cover."""
+    try:
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        WD_ALIGN_PARAGRAPH = None  # type: ignore
 
     search = "Volume"
     for p in doc.paragraphs:
         if search in p.text:
-            p.text = (
-                f"Volume {volume}, Issue {issue}\n{month_year}\n{section_title}\nPage {page_num}"
-            )
+            p.text = f"Volume {volume}, Issue {issue}\n{month_year}\n{section_title}"
             for run in p.runs:
                 run.font.bold = True
+            if WD_ALIGN_PARAGRAPH is not None:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                try:
+                    pPr = p._p.get_or_add_pPr()
+                    for b in pPr.findall(qn("w:pBdr")):
+                        pPr.remove(b)
+                    pBdr = OxmlElement("w:pBdr")
+                    bottom = OxmlElement("w:bottom")
+                    bottom.set(qn("w:val"), "single")
+                    bottom.set(qn("w:sz"), "6")
+                    bottom.set(qn("w:space"), "1")
+                    bottom.set(qn("w:color"), "000000")
+                    pBdr.append(bottom)
+                    pPr.append(pBdr)
+                except Exception:
+                    pass
             break
             
 def update_business_information(
@@ -74,6 +96,30 @@ def update_page2_header(doc: Document, new_header_line1: str, page_num: int) -> 
             if p.text.strip():
                 p.text = text
                 break
+
+
+def format_front_cover(doc: Document) -> None:
+    """Bold and center the first paragraph of the document."""
+    if not doc.paragraphs:
+        return
+    p = doc.paragraphs[0]
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in p.runs:
+        run.font.bold = True
+
+
+def layout_footer(doc: Document) -> None:
+    """Center footers across all sections."""
+    for section in doc.sections:
+        footer = section.footer
+        paragraph = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+def format_front_and_footer(doc: Document) -> None:
+    """Apply both front-cover formatting and footer layout tweaks."""
+    format_front_cover(doc)
+    layout_footer(doc)
 
 
 def update_associate_editors(
@@ -216,7 +262,12 @@ def load_instructions(content_path: Path) -> dict:
     if inst_file.exists():
         try:
             with inst_file.open("r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if "format_front_and_footer" in data and not isinstance(
+                    data["format_front_and_footer"], dict
+                ):
+                    data["format_front_and_footer"] = {}
+                return data
         except Exception as e:
             print(f"Failed to read instructions: {e}")
     return {}
@@ -266,6 +317,32 @@ def set_line_spacing(doc: Document, start_paragraph: int, spacing: float) -> Non
     """Set line spacing for paragraphs starting at ``start_paragraph``."""
     for p in doc.paragraphs[start_paragraph:]:
         p.paragraph_format.line_spacing = spacing
+
+
+def format_front_and_footer(
+    doc: Document,
+    font_size: Optional[int] = None,
+    line_spacing: Optional[float] = None,
+) -> None:
+    """Apply formatting to the front cover block and all footers."""
+
+    # front cover paragraph usually contains "Volume" text
+    for p in doc.paragraphs:
+        if "Volume" in p.text:
+            if line_spacing is not None:
+                p.paragraph_format.line_spacing = line_spacing
+            if font_size is not None:
+                for run in p.runs:
+                    run.font.size = Pt(font_size)
+            break
+
+    for section in doc.sections:
+        for p in section.footer.paragraphs:
+            if line_spacing is not None:
+                p.paragraph_format.line_spacing = line_spacing
+            if font_size is not None:
+                for run in p.runs:
+                    run.font.size = Pt(font_size)
 
 def reuse_journal_page(doc: Document, source_doc: Document, page_number: int) -> None:
     """Copy the specified page from ``source_doc`` into ``doc``."""
@@ -437,8 +514,55 @@ def apply_two_column_layout(doc: Document, start_page: int) -> None:
 
 
 def apply_page_borders(doc: Document, start_section: int, border_specs) -> None:
-    """Apply borders to pages starting at ``start_section``."""
-    pass
+    """Apply borders to pages starting at ``start_section``.
+
+    ``border_specs`` should be a mapping with keys for each border side
+    (``"left"``, ``"right"``, ``"top"``, ``"bottom"``). Each side maps to a
+    dictionary of border properties such as ``{"val": "single", "sz": 4}``.
+    Only sides provided in ``border_specs`` are applied.
+    """
+
+    try:
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        # If python-docx is unavailable we silently exit
+        return
+
+    valid_sides = {"left", "right", "top", "bottom"}
+
+    for idx, section in enumerate(doc.sections):
+        if idx < start_section:
+            continue
+
+        # Filter out unknown sides
+        specs = {k: v for k, v in border_specs.items() if k in valid_sides}
+        if not specs:
+            continue
+
+        # Use high level API when available
+        if hasattr(section, "page_setup") and hasattr(section.page_setup, "left_border"):
+            ps = section.page_setup
+            for side, spec in specs.items():
+                try:
+                    setattr(ps, f"{side}_border", spec)
+                except Exception:
+                    pass
+            continue
+
+        # Fallback to raw XML manipulation
+        sectPr = section._sectPr
+        for existing in sectPr.findall(qn("w:pgBorders")):
+            sectPr.remove(existing)
+        pgBorders = OxmlElement("w:pgBorders")
+        pgBorders.set(qn("w:offsetFrom"), "text")
+
+        for side, spec in specs.items():
+            border = OxmlElement(f"w:{side}")
+            for key, val in spec.items():
+                border.set(qn(f"w:{key}"), str(val))
+            pgBorders.append(border)
+        sectPr.append(pgBorders)
 
 
 def add_page_borders(doc: Document, start_section: int) -> None:
@@ -482,9 +606,102 @@ def add_page_borders(doc: Document, start_section: int) -> None:
         sectPr.append(pgBorders)
 
 
+def apply_footer_layout(doc: Document, volume: str, issue: str, year: str) -> None:
+    """Add standardized footers and leave the first page blank."""
+
+    try:
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        return
+
+    if not doc.sections:
+        return
+
+    first = doc.sections[0]
+    first.different_first_page_header_footer = True
+
+    def _clear_borders(table):
+        tbl_pr = table._tbl.tblPr
+        if tbl_pr is None:
+            tbl_pr = OxmlElement("w:tblPr")
+            table._tbl.insert(0, tbl_pr)
+        borders = OxmlElement("w:tblBorders")
+        for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            el = OxmlElement(f"w:{side}")
+            el.set(qn("w:val"), "nil")
+            borders.append(el)
+        tbl_pr.append(borders)
+
+    def _add_page_field(paragraph):
+        run = paragraph.add_run()
+        begin = OxmlElement("w:fldChar")
+        begin.set(qn("w:fldCharType"), "begin")
+        run._r.append(begin)
+        instr = OxmlElement("w:instrText")
+        instr.set(qn("xml:space"), "preserve")
+        instr.text = "PAGE"
+        run._r.append(instr)
+        separate = OxmlElement("w:fldChar")
+        separate.set(qn("w:fldCharType"), "separate")
+        run._r.append(separate)
+        paragraph.add_run("1")
+        end = OxmlElement("w:fldChar")
+        end.set(qn("w:fldCharType"), "end")
+        paragraph.add_run()._r.append(end)
+
+    for idx, section in enumerate(doc.sections):
+        if idx > 0:
+            try:
+                section.footer.is_linked_to_previous = False
+            except Exception:
+                pass
+        footer = section.footer
+        table = footer.add_table(rows=1, cols=3, width=section.page_width)
+        _clear_borders(table)
+
+        left_p = table.cell(0, 0).paragraphs[0]
+        left_p.text = "The ABNFF Journal"
+        left_p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        for r in left_p.runs:
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(0, 0, 0)
+
+        center_cell = table.cell(0, 1)
+        shd = OxmlElement("w:shd")
+        shd.set(qn("w:fill"), "000000")
+        center_cell._tc.get_or_add_tcPr().append(shd)
+        center_p = center_cell.paragraphs[0]
+        center_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _add_page_field(center_p)
+        for r in center_p.runs:
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(255, 255, 255)
+
+        right_p = table.cell(0, 2).paragraphs[0]
+        right_p.text = f"Volume {volume} ({year}), Issue {issue}"
+        right_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        for r in right_p.runs:
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(0, 0, 0)
+
+
+
 def validate_issue_number_and_volume(doc: Document, expected_volume: str, expected_issue: str, expected_year: str) -> None:
     """Check volume/issue/year text appears once and matches expectations."""
-    pass
+
+    search = f"Volume {expected_volume}, Issue {expected_issue}"
+    count_block = 0
+    count_year = 0
+    for p in doc.paragraphs:
+        text = p.text
+        if search in text:
+            count_block += 1
+        if expected_year in text:
+            count_year += 1
+
+    if count_block != 1 or count_year != 1:
+        raise ValueError("Volume/issue/year text not found exactly once")
 
 def save_pdf(doc_path: Path, pdf_path: Path):
     try:
@@ -507,14 +724,10 @@ def update_journal(
 ) -> None:
     """Run the update process with explicit paths and parameters."""
     doc = load_document(base_path)
-    instr_path = content_path / "instructions.json"
-    instructions = {}
-    if instr_path.exists():
-        import json
-
-        instructions = json.loads(instr_path.read_text())
+    instructions = load_instructions(content_path)
 
     update_front_cover(doc, volume, issue, month_year, section_title, cover_page_num)
+    apply_footer_layout(doc, volume, issue, month_year.split()[-1])
     update_business_information(
         doc,
         "2023",
@@ -536,6 +749,16 @@ def update_journal(
         set_font_size(doc, start_idx, int(instructions["font_size"]))
     if "line_spacing" in instructions:
         set_line_spacing(doc, start_idx, float(instructions["line_spacing"]))
+    if instructions.get("format_front_and_footer"):
+        format_front_and_footer(doc)
+
+    fmt = instructions.get("format_front_and_footer", {})
+    if fmt:
+        format_front_and_footer(
+            doc,
+            font_size=fmt.get("font_size"),
+            line_spacing=fmt.get("line_spacing"),
+        )
 
     save_document(doc, output_path)
     pdf_path = output_path.with_suffix(".pdf")
