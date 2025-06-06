@@ -9,8 +9,6 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-
 def load_document(path: Path) -> Document:
     """Open the Word file at ``path`` and return a ``Document`` object."""
     return Document(str(path))
