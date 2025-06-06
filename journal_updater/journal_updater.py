@@ -9,8 +9,6 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-
 def load_document(path: Path) -> Document:
     """Open the Word file at ``path`` and return a ``Document`` object."""
     return Document(str(path))
@@ -115,11 +113,6 @@ def layout_footer(doc: Document) -> None:
         paragraph = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-
-def format_front_and_footer(doc: Document) -> None:
-    """Apply both front-cover formatting and footer layout tweaks."""
-    format_front_cover(doc)
-    layout_footer(doc)
 
 
 def update_associate_editors(
