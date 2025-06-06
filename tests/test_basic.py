@@ -29,6 +29,8 @@ def test_load_and_update_front_cover(tmp_path):
     loaded = journal_updater.load_document(doc_path)
     journal_updater.update_front_cover(loaded, "1", "1", "June 2025", "Update Articles", 1)
     assert "June 2025" in loaded.paragraphs[0].text
+    assert "Page" not in loaded.paragraphs[0].text
+    assert all(run.font.bold for run in loaded.paragraphs[0].runs)
 
 
 def test_update_page2_header(tmp_path):
@@ -71,7 +73,15 @@ def test_update_journal_formatting(tmp_path):
     )
 
     out_path = tmp_path / "out.docx"
-    journal_updater.update_journal(base_path, content_dir, out_path, "1", "1", "June 2025", "Update Articles")
+    journal_updater.update_journal(
+        base_path,
+        content_dir,
+        out_path,
+        "1",
+        "1",
+        "Jan 2025",
+        "Articles",
+    )
     result = journal_updater.Document(out_path)
     first = result.sections[0]
     assert first.different_first_page_header_footer
