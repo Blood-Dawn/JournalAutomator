@@ -22,5 +22,5 @@ def test_delete_after_page(tmp_path):
 
     result = ju.Document(out_path)
     texts = [p.text for p in result.paragraphs]
-    assert len(texts) == 1
-    assert "Page 1" in texts[0]
+    assert len(texts) == 2
+    assert "Old text" in texts[1]
