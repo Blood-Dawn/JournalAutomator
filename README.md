@@ -41,9 +41,13 @@ The script performs a handful of automated replacements:
 3. Updates page 2 header text.
 4. Inserts the President's Message from `president_message.txt`.
 5. Clears all old articles and appends the new ones found in the
-   content folder.
+   content folder. The removal step relies on article titles listed
+   under the **ARTICLES** section of the Table of Contents.
 6. Saves the resulting document and optionally attempts to export a PDF
    alongside it (requires `docx2pdf`).
+
+Ensure your base document includes a Table of Contents with an
+**ARTICLES** heading so article titles can be detected and removed.
 
 The implementation is intentionally minimal and serves as a starting
 point for further automation as outlined in the program goals.
