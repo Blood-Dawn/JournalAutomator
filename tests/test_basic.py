@@ -77,10 +77,10 @@ def test_update_journal_formatting(tmp_path):
         base_path,
         content_dir,
         out_path,
-        volume="1",
-        issue="1",
-        month_year="June 2025",
-        section_title="Articles",
+        "1",
+        "1",
+        "June 2025",
+        "Update Articles",
     )
     result = journal_updater.Document(out_path)
     first = result.sections[0]
