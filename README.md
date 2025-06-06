@@ -19,12 +19,15 @@ python -m journal_updater.gui
 ```
 
 The window lets you choose the base DOCX, the content folder, and where the
-output should be saved. Clicking **Run Update** performs the same steps as the
-command line script.
+output should be saved. It also collects the volume, issue, date, section title
+and the page numbers used for the cover and header. Clicking **Run Update**
+performs the same steps as the command line script.
 ## Usage
 
 ```
-python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER OUTPUT_DOCX
+python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER OUTPUT_DOCX \
+    --volume 1 --issue 1 --month-year "June 2025" \
+    --section-title "Update Articles" --cover-page 1 --header-page 2
 ```
 
 - **BASE_DOCX**: path to the previous issue's Word file (e.g. December 2024).
@@ -32,7 +35,11 @@ python journal_updater/journal_updater.py BASE_DOCX CONTENT_FOLDER OUTPUT_DOCX
   include:
   - `president_message.txt` – new President's Message text.
   - `article*.docx` – Word documents for each new article.
-- **OUTPUT_DOCX**: path where the updated June issue should be saved.
+- **OUTPUT_DOCX**: path where the updated issue should be saved.
+- **--volume / --issue / --month-year / --section-title**: details for the new
+  issue's front matter.
+- **--cover-page** and **--header-page**: page numbers used on the front cover
+  and page 2 header.
 
 The script performs a handful of automated replacements:
 

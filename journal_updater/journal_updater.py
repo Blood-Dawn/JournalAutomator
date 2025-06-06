@@ -286,17 +286,28 @@ def save_pdf(doc_path: Path, pdf_path: Path):
         print(f"PDF export failed: {e}")
 
 
-def update_journal(base_path: Path, content_path: Path, output_path: Path) -> None:
-    """Run the update process with explicit paths."""
+def update_journal(
+    base_path: Path,
+    content_path: Path,
+    output_path: Path,
+    volume: str,
+    issue: str,
+    month_year: str,
+    section_title: str,
+    cover_page_num: int = 1,
+    header_page_num: int = 2,
+) -> None:
+    """Run the update process with explicit paths and parameters."""
     doc = load_document(base_path)
 
-    update_front_cover(doc, "1", "1", "June 2025", "Update Articles", 1)
+    update_front_cover(doc, volume, issue, month_year, section_title, cover_page_num)
     update_business_information(
         doc,
         "2023",
         "Annual subscription rates are: institutions $550, individuals $220, and students $110",
     )
-    update_page2_header(doc, "Volume 1, Issue 1\nJune 2025\nUpdate Articles and Editorials", 2)
+    header_text = f"Volume {volume}, Issue {issue}\n{month_year}\n{section_title}"
+    update_page2_header(doc, header_text, header_page_num)
 
     pres_message_path = content_path / "president_message.txt"
     message_text = pres_message_path.read_text() if pres_message_path.exists() else ""
@@ -312,9 +323,29 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
     pdf_path = output_path.with_suffix(".pdf")
     save_pdf(output_path, pdf_path)
 
-def main_from_gui(base_doc: Path, content_folder: Path, output_doc: Path) -> None:
+def main_from_gui(
+    base_doc: Path,
+    content_folder: Path,
+    output_doc: Path,
+    volume: str,
+    issue: str,
+    month_year: str,
+    section_title: str,
+    cover_page_num: int = 1,
+    header_page_num: int = 2,
+) -> None:
     """Helper for GUI front-end."""
-    update_journal(base_doc, content_folder, output_doc)
+    update_journal(
+        base_doc,
+        content_folder,
+        output_doc,
+        volume,
+        issue,
+        month_year,
+        section_title,
+        cover_page_num,
+        header_page_num,
+    )
 
 
 def main():
@@ -322,13 +353,29 @@ def main():
     parser.add_argument("base_doc")
     parser.add_argument("content_folder")
     parser.add_argument("output_doc")
+    parser.add_argument("--volume", required=True)
+    parser.add_argument("--issue", required=True)
+    parser.add_argument("--month-year", required=True, dest="month_year")
+    parser.add_argument("--section-title", required=True, dest="section_title")
+    parser.add_argument("--cover-page", type=int, default=1, dest="cover_page")
+    parser.add_argument("--header-page", type=int, default=2, dest="header_page")
     args = parser.parse_args()
 
     base_path = Path(args.base_doc)
     content_path = Path(args.content_folder)
     output_path = Path(args.output_doc)
 
-    update_journal(base_path, content_path, output_path)
+    update_journal(
+        base_path,
+        content_path,
+        output_path,
+        args.volume,
+        args.issue,
+        args.month_year,
+        args.section_title,
+        args.cover_page,
+        args.header_page,
+    )
 
 if __name__ == "__main__":
     main()
