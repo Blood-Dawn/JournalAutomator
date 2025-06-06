@@ -21,8 +21,11 @@ python -m journal_updater.gui
 
 The window lets you choose the base DOCX, the content folder, and where the
 output should be saved. It also collects the volume, issue, date and the page
-numbers used for the cover and where new articles should start. Clicking **Run Update**
-performs the same steps as the command line script.
+numbers used for the cover and where new articles should start. Additional
+fields let you enter a default font size, line spacing and font family. These
+settings are written to an `instructions.json` file in the selected content
+folder. Clicking **Run Update** performs the same steps as the command line
+script.
 ## Usage
 
 ```

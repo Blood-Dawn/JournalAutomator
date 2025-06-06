@@ -946,8 +946,29 @@ def main_from_gui(
     cover_page_num: int = 1,
     start_page: Optional[int] = None,
     article_files: Optional[List[Path]] = None,
+    font_size: Optional[int] = None,
+    line_spacing: Optional[float] = None,
+    font_family: Optional[str] = None,
 ) -> None:
     """Helper for GUI front-end."""
+    inst_file = content_folder / "instructions.json"
+    instructions = {}
+    if inst_file.exists():
+        try:
+            with inst_file.open("r", encoding="utf-8") as f:
+                instructions = json.load(f)
+        except Exception:
+            instructions = {}
+    if font_size is not None:
+        instructions["font_size"] = font_size
+    if line_spacing is not None:
+        instructions["line_spacing"] = line_spacing
+    if font_family is not None:
+        instructions["font_family"] = font_family
+    if instructions:
+        with inst_file.open("w", encoding="utf-8") as f:
+            json.dump(instructions, f)
+
     update_journal(
         base_doc,
         content_folder,
