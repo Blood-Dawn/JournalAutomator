@@ -359,8 +359,7 @@ def remove_pages_from(doc: Document, start_page: int) -> int:
         el = doc.paragraphs[idx]._element
         el.getparent().remove(el)
     return idx
-
-
+  
 def apply_basic_formatting(
     doc: Document, font_size: Optional[int], line_spacing: Optional[float]
 ) -> None:
