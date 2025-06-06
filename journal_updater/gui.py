@@ -18,9 +18,8 @@ def run_gui():
     volume = tk.StringVar()
     issue = tk.StringVar()
     month_year = tk.StringVar()
-    section_title = tk.StringVar()
     cover_page = tk.IntVar(value=1)
-    header_page = tk.IntVar(value=2)
+    start_page = tk.IntVar(value=3)
 
     def choose_base():
         path = filedialog.askopenfilename(
@@ -61,7 +60,7 @@ def run_gui():
             or not volume.get()
             or not issue.get()
             or not month_year.get()
-            or not section_title.get()
+            or start_page.get() <= 0
         ):
             messagebox.showerror(
                 "Missing information", "Please select all required paths"
@@ -76,9 +75,8 @@ def run_gui():
                 volume.get(),
                 issue.get(),
                 month_year.get(),
-                section_title.get(),
                 cover_page.get(),
-                header_page.get(),
+                start_page.get(),
                 [Path(p) for p in selected_articles] if selected_articles else None,
             )
         except Exception as e:
@@ -126,14 +124,11 @@ def run_gui():
     tk.Label(frm, text="Month/Year:").grid(row=row, column=0, sticky="e")
     tk.Entry(frm, textvariable=month_year).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Section Title:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=section_title).grid(row=row, column=1, sticky="ew")
-    row += 1
     tk.Label(frm, text="Cover Page #:").grid(row=row, column=0, sticky="e")
     tk.Entry(frm, textvariable=cover_page).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Header Page #:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=header_page).grid(row=row, column=1, sticky="ew")
+    tk.Label(frm, text="Start Page #:").grid(row=row, column=0, sticky="e")
+    tk.Entry(frm, textvariable=start_page).grid(row=row, column=1, sticky="ew")
     row += 1
 
     tk.Button(frm, text="Run Update", command=run_update).grid(
