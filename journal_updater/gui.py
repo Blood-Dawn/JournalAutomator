@@ -7,10 +7,14 @@ from . import journal_updater
 def run_gui():
     root = tk.Tk()
     root.title("ABNFF Journal Updater")
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
 
     selected_base = tk.StringVar()
     selected_content = tk.StringVar()
     selected_output = tk.StringVar()
+    selected_articles: list[str] = []
+    articles_label = tk.StringVar()
     volume = tk.StringVar()
     issue = tk.StringVar()
     month_year = tk.StringVar()
@@ -19,7 +23,9 @@ def run_gui():
     header_page = tk.IntVar(value=2)
 
     def choose_base():
-        path = filedialog.askopenfilename(title="Select base DOCX", filetypes=[("Word files", "*.docx")])
+        path = filedialog.askopenfilename(
+            title="Select base DOCX", filetypes=[("Word files", "*.docx")]
+        )
         if path:
             selected_base.set(path)
 
@@ -37,6 +43,16 @@ def run_gui():
         if path:
             selected_output.set(path)
 
+    def choose_articles():
+        paths = filedialog.askopenfilenames(
+            title="Select article DOCX files",
+            filetypes=[("Word files", "*.docx")],
+        )
+        if paths:
+            selected_articles.clear()
+            selected_articles.extend(paths)
+            articles_label.set(", ".join(Path(p).name for p in selected_articles))
+
     def run_update():
         if (
             not selected_base.get()
@@ -47,7 +63,9 @@ def run_gui():
             or not month_year.get()
             or not section_title.get()
         ):
-            messagebox.showerror("Missing information", "Please select all required paths")
+            messagebox.showerror(
+                "Missing information", "Please select all required paths"
+            )
             return
         try:
             output_arg = Path(selected_output.get()) if selected_output.get() else None
@@ -61,23 +79,44 @@ def run_gui():
                 section_title.get(),
                 cover_page.get(),
                 header_page.get(),
+                [Path(p) for p in selected_articles] if selected_articles else None,
             )
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update journal: {e}")
 
     frm = tk.Frame(root, padx=10, pady=10)
-    frm.pack()
+    frm.pack(fill="both", expand=True)
+    frm.columnconfigure(1, weight=1)
 
-    tk.Button(frm, text="Choose Base DOCX", command=choose_base).grid(row=0, column=0, sticky="ew")
-    tk.Label(frm, textvariable=selected_base, width=40, anchor="w").grid(row=0, column=1, padx=5)
+    tk.Button(frm, text="Choose Base DOCX", command=choose_base).grid(
+        row=0, column=0, sticky="ew"
+    )
+    tk.Label(frm, textvariable=selected_base, anchor="w").grid(
+        row=0, column=1, padx=5, sticky="ew"
+    )
 
-    tk.Button(frm, text="Choose Content Folder", command=choose_content).grid(row=1, column=0, sticky="ew")
-    tk.Label(frm, textvariable=selected_content, width=40, anchor="w").grid(row=1, column=1, padx=5)
+    tk.Button(frm, text="Choose Content Folder", command=choose_content).grid(
+        row=1, column=0, sticky="ew"
+    )
+    tk.Label(frm, textvariable=selected_content, anchor="w").grid(
+        row=1, column=1, padx=5, sticky="ew"
+    )
 
-    tk.Button(frm, text="Choose Output DOCX (optional)", command=choose_output).grid(row=2, column=0, sticky="ew")
-    tk.Label(frm, textvariable=selected_output, width=40, anchor="w").grid(row=2, column=1, padx=5)
+    tk.Button(frm, text="Choose Output DOCX (optional)", command=choose_output).grid(
+        row=2, column=0, sticky="ew"
+    )
+    tk.Label(frm, textvariable=selected_output, anchor="w").grid(
+        row=2, column=1, padx=5, sticky="ew"
+    )
 
-    row = 3
+    tk.Button(frm, text="Choose Article Files", command=choose_articles).grid(
+        row=3, column=0, sticky="ew"
+    )
+    tk.Label(frm, textvariable=articles_label, anchor="w").grid(
+        row=3, column=1, padx=5, sticky="ew"
+    )
+
+    row = 4
     tk.Label(frm, text="Volume:").grid(row=row, column=0, sticky="e")
     tk.Entry(frm, textvariable=volume).grid(row=row, column=1, sticky="ew")
     row += 1
@@ -97,7 +136,9 @@ def run_gui():
     tk.Entry(frm, textvariable=header_page).grid(row=row, column=1, sticky="ew")
     row += 1
 
-    tk.Button(frm, text="Run Update", command=run_update).grid(row=row, column=0, columnspan=2, pady=5)
+    tk.Button(frm, text="Run Update", command=run_update).grid(
+        row=row, column=0, columnspan=2, pady=5
+    )
 
     root.mainloop()
 
