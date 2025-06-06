@@ -100,7 +100,10 @@ def update_assistant_editors(doc: Document, remove_name: str) -> None:
 
     for p in doc.paragraphs:
         if remove_name in p.text:
-            p.text = ""
+            elem = p._element
+            parent = elem.getparent()
+            parent.remove(elem)
+            break
 
 
 def insert_presidents_message(doc: Document, image_path: Path, message_text: str) -> None:
