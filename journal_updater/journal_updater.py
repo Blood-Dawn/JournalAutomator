@@ -359,8 +359,6 @@ def remove_pages_from(doc: Document, start_page: int) -> int:
         el = doc.paragraphs[idx]._element
         el.getparent().remove(el)
     return idx
-
-
 def apply_basic_formatting(
     doc: Document, font_size: Optional[int], line_spacing: Optional[float]
 ) -> None:
@@ -886,7 +884,6 @@ def update_journal(
     ``start_page`` specifies the page number where articles should be
     inserted. If ``None`` old articles are cleared automatically based on
     editorial headings.
-
     If ``article_files`` is ``None`` new articles are discovered using
     :func:`find_article_files` within ``content_path``.
     """
