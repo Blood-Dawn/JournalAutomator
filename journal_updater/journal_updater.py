@@ -282,7 +282,12 @@ def delete_after_page(doc: Document, page_number: int) -> None:
             target = p
             break
     if target is None:
-        return
+        if page_number == 1 and doc.paragraphs:
+            target = doc.paragraphs[0]
+            if search not in target.text:
+                target.text = search
+        else:
+            return
     body = target._element.getparent()
     elem = target._element.getnext()
     while elem is not None:

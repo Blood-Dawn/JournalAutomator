@@ -98,5 +98,7 @@ def test_format_front_and_footer(tmp_path):
     footer_p.text = "footer"
 
     journal_updater.format_front_and_footer(doc, font_size=13, line_spacing=1.25)
-    assert result.paragraphs[0].runs[0].font.size.pt == 14
-    assert result.paragraphs[0].paragraph_format.line_spacing == 2
+    assert doc.paragraphs[0].runs[0].font.size.pt == 13
+    assert doc.paragraphs[0].paragraph_format.line_spacing == 1.25
+    assert doc.sections[0].footer.paragraphs[0].runs[0].font.size.pt == 13
+    assert doc.sections[0].footer.paragraphs[0].paragraph_format.line_spacing == 1.25
