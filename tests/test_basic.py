@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import journal_updater.journal_updater as journal_updater
@@ -37,3 +38,29 @@ def test_update_page2_header(tmp_path):
     header_p.text = "Old header"
     journal_updater.update_page2_header(doc, "Volume 1", 2)
     assert "Page 2" in section.header.paragraphs[0].text
+
+
+def test_update_journal_with_instructions(tmp_path):
+    base_doc = tmp_path / "base.docx"
+    doc = journal_updater.Document()
+    doc.add_paragraph("Volume 1, Issue 1")
+    doc.save(base_doc)
+
+    content = tmp_path / "content"
+    content.mkdir()
+
+    instructions = {
+        "volume": "2",
+        "issue": "3",
+        "font_size": 10,
+        "line_spacing": 1.0,
+    }
+    (content / "instructions.json").write_text(json.dumps(instructions))
+
+    output_doc = tmp_path / "out.docx"
+
+    journal_updater.update_journal(base_doc, content, output_doc)
+
+    out = journal_updater.load_document(output_doc)
+    assert "Volume 2" in out.paragraphs[0].text
+    assert out.paragraphs[0].paragraph_format.line_spacing == 1.0
