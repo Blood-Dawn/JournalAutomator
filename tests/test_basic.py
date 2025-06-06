@@ -71,8 +71,18 @@ def test_update_journal_formatting(tmp_path):
     )
 
     out_path = tmp_path / "out.docx"
-    journal_updater.update_journal(base_path, content_dir, out_path)
+    journal_updater.update_journal(
+        base_path,
+        content_dir,
+        out_path,
+        "1",
+        "1",
+        "June 2025",
+        "Update Articles",
+        1,
+        2,
+    )
     result = journal_updater.Document(out_path)
 
-    assert result.paragraphs[1].runs[0].font.size.pt == 14
-    assert result.paragraphs[1].paragraph_format.line_spacing == 2
+    assert result.paragraphs[0].runs[0].font.size.pt == 14
+    assert result.paragraphs[0].paragraph_format.line_spacing == 2

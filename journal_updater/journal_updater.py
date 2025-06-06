@@ -533,6 +533,11 @@ def update_journal(
         set_font_size(doc, start_idx, int(instructions["font_size"]))
     if "line_spacing" in instructions:
         set_line_spacing(doc, start_idx, float(instructions["line_spacing"]))
+    if "delete_after_page" in instructions:
+        try:
+            delete_after_page(doc, int(instructions["delete_after_page"]))
+        except Exception:
+            pass
 
     save_document(doc, output_path)
     pdf_path = output_path.with_suffix(".pdf")
