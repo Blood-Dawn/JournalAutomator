@@ -434,8 +434,55 @@ def apply_two_column_layout(doc: Document, start_page: int) -> None:
 
 
 def apply_page_borders(doc: Document, start_section: int, border_specs) -> None:
-    """Apply borders to pages starting at ``start_section``."""
-    pass
+    """Apply borders to pages starting at ``start_section``.
+
+    ``border_specs`` should be a mapping with keys for each border side
+    (``"left"``, ``"right"``, ``"top"``, ``"bottom"``). Each side maps to a
+    dictionary of border properties such as ``{"val": "single", "sz": 4}``.
+    Only sides provided in ``border_specs`` are applied.
+    """
+
+    try:
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        # If python-docx is unavailable we silently exit
+        return
+
+    valid_sides = {"left", "right", "top", "bottom"}
+
+    for idx, section in enumerate(doc.sections):
+        if idx < start_section:
+            continue
+
+        # Filter out unknown sides
+        specs = {k: v for k, v in border_specs.items() if k in valid_sides}
+        if not specs:
+            continue
+
+        # Use high level API when available
+        if hasattr(section, "page_setup") and hasattr(section.page_setup, "left_border"):
+            ps = section.page_setup
+            for side, spec in specs.items():
+                try:
+                    setattr(ps, f"{side}_border", spec)
+                except Exception:
+                    pass
+            continue
+
+        # Fallback to raw XML manipulation
+        sectPr = section._sectPr
+        for existing in sectPr.findall(qn("w:pgBorders")):
+            sectPr.remove(existing)
+        pgBorders = OxmlElement("w:pgBorders")
+        pgBorders.set(qn("w:offsetFrom"), "text")
+
+        for side, spec in specs.items():
+            border = OxmlElement(f"w:{side}")
+            for key, val in spec.items():
+                border.set(qn(f"w:{key}"), str(val))
+            pgBorders.append(border)
+        sectPr.append(pgBorders)
 
 
 def add_page_borders(doc: Document, start_section: int) -> None:
@@ -481,7 +528,19 @@ def add_page_borders(doc: Document, start_section: int) -> None:
 
 def validate_issue_number_and_volume(doc: Document, expected_volume: str, expected_issue: str, expected_year: str) -> None:
     """Check volume/issue/year text appears once and matches expectations."""
-    pass
+
+    search = f"Volume {expected_volume}, Issue {expected_issue}"
+    count_block = 0
+    count_year = 0
+    for p in doc.paragraphs:
+        text = p.text
+        if search in text:
+            count_block += 1
+        if expected_year in text:
+            count_year += 1
+
+    if count_block != 1 or count_year != 1:
+        raise ValueError("Volume/issue/year text not found exactly once")
 
 def save_pdf(doc_path: Path, pdf_path: Path):
     try:
