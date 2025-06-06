@@ -27,7 +27,7 @@ def test_load_and_update_front_cover(tmp_path):
     doc.save(doc_path)
 
     loaded = journal_updater.load_document(doc_path)
-    journal_updater.update_front_cover(loaded, "1", "1", "June 2025", "Update Articles", 1)
+    journal_updater.update_front_cover(loaded, "1", "1", "June 2025", 1)
     assert "June 2025" in loaded.paragraphs[0].text
     assert "Page" not in loaded.paragraphs[0].text
     assert all(run.font.bold for run in loaded.paragraphs[0].runs)
@@ -84,7 +84,6 @@ def test_update_journal_formatting(tmp_path):
         "1",
         "1",
         "June 2025",
-        "Articles",
     )
     result = journal_updater.Document(out_path)
     first = result.sections[0]

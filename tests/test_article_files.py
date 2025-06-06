@@ -30,7 +30,6 @@ def test_update_journal_appends_articles(tmp_path):
         "1",
         "1",
         "June 2025",
-        "Articles",
     )
 
     result = ju.Document(out_path)
