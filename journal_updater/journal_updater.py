@@ -149,10 +149,12 @@ def insert_presidents_message(doc: Document, image_path: Path, message_text: str
     """Insert the president's message and optional image on page 3."""
 
     text = message_text if message_text else "<<Awaiting President's message>>"
-    for p in doc.paragraphs:
+    for i, p in enumerate(doc.paragraphs):
         if "President's Message" in p.text:
-            idx = doc.paragraphs.index(p)
-            target = doc.paragraphs[idx + 1]
+            if i + 1 < len(doc.paragraphs):
+                target = doc.paragraphs[i + 1]
+            else:
+                target = doc.add_paragraph()
             target.text = text
             break
 
@@ -247,6 +249,46 @@ def clear_articles(doc: Document):
     if found:
         for _ in range(len(doc.paragraphs) - start_idx):
             remove_paragraph(doc.paragraphs[start_idx])
+
+
+def clear_articles_preserve_editorials(doc: Document) -> None:
+    """Remove article content while keeping editorial sections."""
+
+    headings = ["President's Message", "First Editorial", "Second Editorial"]
+    pages = map_pages_to_paragraphs(doc)
+    para_index = {id(p): i for i, p in enumerate(doc.paragraphs)}
+
+    last_editorial_page = 0
+    for page_num, paragraphs in pages.items():
+        for p in paragraphs:
+            if p.text.strip().lower() in [h.lower() for h in headings]:
+                if page_num > last_editorial_page:
+                    last_editorial_page = page_num
+
+    if last_editorial_page == 0:
+        clear_articles(doc)
+        return
+
+    article_start_idx = None
+    for page in sorted(pages):
+        if page >= last_editorial_page:
+            for p in pages[page]:
+                if p.text.strip().upper() == "ARTICLES":
+                    article_start_idx = para_index.get(id(p))
+                    break
+            if article_start_idx is not None:
+                break
+
+    if article_start_idx is None:
+        clear_articles(doc)
+        return
+
+    def remove_paragraph(paragraph):
+        el = paragraph._element
+        el.getparent().remove(el)
+
+    for _ in range(len(doc.paragraphs) - article_start_idx):
+        remove_paragraph(doc.paragraphs[article_start_idx])
 
 
 def load_instructions(content_path: Path) -> dict:
@@ -766,7 +808,7 @@ def update_journal(
     message_text = pres_message_path.read_text() if pres_message_path.exists() else ""
     insert_presidents_message(doc, content_path / "president.jpg", message_text)
 
-    clear_articles(doc)
+    clear_articles_preserve_editorials(doc)
 
     start_idx = len(doc.paragraphs)
     for article_file in sorted(content_path.glob("article*.docx")):
