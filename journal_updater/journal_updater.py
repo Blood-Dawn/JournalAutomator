@@ -892,6 +892,11 @@ def update_journal(
     doc = load_document(base_path)
     instructions = load_instructions(content_path)
 
+    if "volume" in instructions:
+        volume = str(instructions["volume"])
+    if "issue" in instructions:
+        issue = str(instructions["issue"])
+
     update_front_cover(doc, volume, issue, month_year, cover_page_num)
     apply_footer_layout(doc, volume, issue, month_year.split()[-1])
     update_business_information(
