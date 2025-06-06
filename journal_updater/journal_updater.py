@@ -35,15 +35,35 @@ def update_front_cover(
     page_num: int,
 ) -> None:
     """Update volume/issue block on the front cover."""
+    try:
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        WD_ALIGN_PARAGRAPH = None  # type: ignore
 
     search = "Volume"
     for p in doc.paragraphs:
         if search in p.text:
-            p.text = (
-                f"Volume {volume}, Issue {issue}\n{month_year}\n{section_title}\nPage {page_num}"
-            )
+            p.text = f"Volume {volume}, Issue {issue}\n{month_year}\n{section_title}"
             for run in p.runs:
                 run.font.bold = True
+            if WD_ALIGN_PARAGRAPH is not None:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                try:
+                    pPr = p._p.get_or_add_pPr()
+                    for b in pPr.findall(qn("w:pBdr")):
+                        pPr.remove(b)
+                    pBdr = OxmlElement("w:pBdr")
+                    bottom = OxmlElement("w:bottom")
+                    bottom.set(qn("w:val"), "single")
+                    bottom.set(qn("w:sz"), "6")
+                    bottom.set(qn("w:space"), "1")
+                    bottom.set(qn("w:color"), "000000")
+                    pBdr.append(bottom)
+                    pPr.append(pBdr)
+                except Exception:
+                    pass
             break
             
 def update_business_information(
