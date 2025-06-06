@@ -75,6 +75,9 @@ An optional `instructions.json` file may be placed in the content folder to cont
 - `format_front_and_footer` – optional block with `font_size` and
   `line_spacing` to style the front cover paragraph and all footers.
 
+When present, the `volume` and `issue` values override any command line or GUI
+inputs.
+
 Example file:
 
 ```json
