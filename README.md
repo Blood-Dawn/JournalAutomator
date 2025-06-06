@@ -69,6 +69,8 @@ control certain aspects of the update. Supported keys are:
 - `delete_after_page` – remove all content after this page number.
 - `font_size` – default font size to apply to all text (in points).
 - `line_spacing` – line spacing value (e.g. `1.0` or `1.15`).
+- `format_front_and_footer` – optional block with `font_size` and
+  `line_spacing` to style the front cover paragraph and all footers.
 
 Example file:
 
@@ -78,7 +80,11 @@ Example file:
   "issue": "3",
   "delete_after_page": 2,
   "font_size": 10,
-  "line_spacing": 1.0
+  "line_spacing": 1.0,
+  "format_front_and_footer": {
+    "font_size": 14,
+    "line_spacing": 1.2
+  }
 }
 ```
 

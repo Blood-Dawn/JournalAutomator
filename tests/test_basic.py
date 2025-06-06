@@ -71,8 +71,30 @@ def test_update_journal_formatting(tmp_path):
     )
 
     out_path = tmp_path / "out.docx"
-    journal_updater.update_journal(base_path, content_dir, out_path)
+    journal_updater.update_journal(
+        base_path,
+        content_dir,
+        out_path,
+        "1",
+        "1",
+        "Jan 2024",
+        "Articles",
+    )
     result = journal_updater.Document(out_path)
 
-    assert result.paragraphs[1].runs[0].font.size.pt == 14
-    assert result.paragraphs[1].paragraph_format.line_spacing == 2
+    assert result.paragraphs[0].runs[0].font.size.pt == 14
+    assert result.paragraphs[0].paragraph_format.line_spacing == 2
+
+
+def test_format_front_and_footer(tmp_path):
+    doc = journal_updater.Document()
+    p = doc.add_paragraph("Volume 1")
+    footer_p = doc.sections[0].footer.paragraphs[0]
+    footer_p.text = "footer"
+
+    journal_updater.format_front_and_footer(doc, font_size=13, line_spacing=1.25)
+
+    assert p.runs[0].font.size.pt == 13
+    assert p.paragraph_format.line_spacing == 1.25
+    assert footer_p.runs[0].font.size.pt == 13
+    assert footer_p.paragraph_format.line_spacing == 1.25
