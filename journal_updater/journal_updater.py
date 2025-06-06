@@ -201,9 +201,20 @@ def clear_articles(doc: Document):
     """Remove article sections based on TOC titles if available."""
     titles = extract_article_titles_from_toc(doc)
 
-    def remove_paragraph(paragraph):
-        p = paragraph._element
-        p.getparent().remove(p)
+    def remove_range(start_p, end_p=None):
+        body = doc.element.body
+        end_el = end_p._element if end_p is not None else None
+        started = False
+        for el in list(body):
+            if el is start_p._element:
+                started = True
+            if not started:
+                continue
+            if el is end_el:
+                break
+            tag = el.tag.rsplit('}', 1)[-1]
+            if tag in ("p", "tbl"):
+                body.remove(el)
 
     if titles:
         article_heading_idx = None
@@ -225,15 +236,11 @@ def clear_articles(doc: Document):
         ):
             start_indices.insert(0, article_heading_idx)
 
-        for idx in reversed(range(len(start_indices))):
-            start = start_indices[idx]
-            end = (
-                start_indices[idx + 1]
-                if idx + 1 < len(start_indices)
-                else len(doc.paragraphs)
-            )
-            for _ in range(end - start):
-                remove_paragraph(doc.paragraphs[start])
+        start_paragraphs = [doc.paragraphs[i] for i in start_indices]
+        for idx in reversed(range(len(start_paragraphs))):
+            start_p = start_paragraphs[idx]
+            end_p = start_paragraphs[idx + 1] if idx + 1 < len(start_paragraphs) else None
+            remove_range(start_p, end_p)
         return
 
     # fallback to previous behaviour if we cannot parse TOC
@@ -245,8 +252,7 @@ def clear_articles(doc: Document):
             start_idx = i
             break
     if found:
-        for _ in range(len(doc.paragraphs) - start_idx):
-            remove_paragraph(doc.paragraphs[start_idx])
+        remove_range(doc.paragraphs[start_idx])
 
 
 def load_instructions(content_path: Path) -> dict:

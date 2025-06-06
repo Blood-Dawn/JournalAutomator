@@ -45,3 +45,26 @@ def test_clear_articles_fallback():
     texts = _paragraph_texts(doc)
     assert texts == ["Intro"]
 
+
+def test_clear_articles_removes_tables():
+    doc = ju.Document()
+    doc.add_paragraph("Table of Contents")
+    doc.add_paragraph("ARTICLES")
+    doc.add_paragraph("First Article........................1")
+    doc.add_paragraph("")
+    doc.add_paragraph("OTHER")
+
+    doc.add_paragraph("ARTICLES")
+    doc.add_paragraph("First Article")
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.cell(0, 0).text = "data"
+    doc.add_paragraph("f content")
+    doc.add_paragraph("OTHER")
+
+    ju.clear_articles(doc)
+    texts = _paragraph_texts(doc)
+    assert "First Article" not in texts
+    assert "f content" not in texts
+    assert len(doc.tables) == 0
+    assert texts[-1] == "OTHER"
+
