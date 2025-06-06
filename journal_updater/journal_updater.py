@@ -115,7 +115,86 @@ def insert_presidents_message(doc: Document, image_path: Path, message_text: str
             break
 
 
+def extract_article_titles_from_toc(doc: Document) -> List[str]:
+    """Return article titles listed under the ARTICLES section in the TOC."""
+    toc_start = None
+    paragraphs = doc.paragraphs
+    # locate table of contents
+    for i, p in enumerate(paragraphs):
+        if "TABLE OF CONTENTS" in p.text.upper():
+            toc_start = i
+            break
+    if toc_start is None:
+        return []
+
+    # find ARTICLES heading within TOC
+    start = None
+    for j in range(toc_start + 1, len(paragraphs)):
+        text = paragraphs[j].text.strip()
+        if text.upper().startswith("ARTICLES"):
+            start = j + 1
+            break
+    if start is None:
+        return []
+
+    titles: List[str] = []
+    import re
+
+    for k in range(start, len(paragraphs)):
+        line = paragraphs[k].text.strip()
+        if not line:
+            break
+        if line.isupper():
+            break
+        match = re.match(r"(.+?)\.{2,}\d+$", line)
+        if match:
+            titles.append(match.group(1).strip())
+        else:
+            titles.append(line)
+
+    return titles
+
+
 def clear_articles(doc: Document):
+    """Remove article sections based on TOC titles if available."""
+    titles = extract_article_titles_from_toc(doc)
+
+    def remove_paragraph(paragraph):
+        p = paragraph._element
+        p.getparent().remove(p)
+
+    if titles:
+        article_heading_idx = None
+
+        # find start indices of each article title and detect the heading
+        start_indices = []
+        for title in titles:
+            for i, p in enumerate(doc.paragraphs):
+                if p.text.strip().upper() == title.upper():
+                    start_indices.append(i)
+                    if article_heading_idx is None and i > 0:
+                        prev = doc.paragraphs[i - 1].text.strip().upper()
+                        if prev == "ARTICLES":
+                            article_heading_idx = i - 1
+                    break
+        start_indices.sort()
+        if article_heading_idx is not None and (
+            not start_indices or article_heading_idx < start_indices[0]
+        ):
+            start_indices.insert(0, article_heading_idx)
+
+        for idx in reversed(range(len(start_indices))):
+            start = start_indices[idx]
+            end = (
+                start_indices[idx + 1]
+                if idx + 1 < len(start_indices)
+                else len(doc.paragraphs)
+            )
+            for _ in range(end - start):
+                remove_paragraph(doc.paragraphs[start])
+        return
+
+    # fallback to previous behaviour if we cannot parse TOC
     found = False
     start_idx = 0
     for i, p in enumerate(doc.paragraphs):
@@ -125,7 +204,7 @@ def clear_articles(doc: Document):
             break
     if found:
         for _ in range(len(doc.paragraphs) - start_idx):
-            doc.paragraphs.pop()
+            remove_paragraph(doc.paragraphs[start_idx])
 
 
 def load_instructions(content_path: Path) -> dict:
