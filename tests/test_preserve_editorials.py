@@ -26,7 +26,7 @@ def test_preserve_editorial_sections(tmp_path):
     art.save(content / "article1.docx")
 
     out_path = tmp_path / "out.docx"
-    ju.update_journal(base_path, content, out_path, "1", "1", "June 2025", "Articles")
+    ju.update_journal(base_path, content, out_path, "1", "1", "June 2025")
 
     result = ju.Document(out_path)
     texts = [p.text for p in result.paragraphs]

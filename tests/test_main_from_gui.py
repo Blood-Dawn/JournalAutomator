@@ -44,9 +44,8 @@ def test_main_from_gui(tmp_path):
         volume="2",
         issue="3",
         month_year="July 2025",
-        section_title="Update Articles",
         cover_page_num=1,
-        header_page_num=2,
+        start_page=3,
     )
 
     result = ju.Document(out_path)

@@ -35,7 +35,6 @@ def update_front_cover(
     volume: str,
     issue: str,
     month_year: str,
-    section_title: str,
     page_num: int,
 ) -> None:
     """Update volume/issue block on the front cover."""
@@ -49,7 +48,7 @@ def update_front_cover(
     search = "Volume"
     for p in doc.paragraphs:
         if search in p.text:
-            p.text = f"Volume {volume}, Issue {issue}\n{month_year}\n{section_title}"
+            p.text = f"Volume {volume}, Issue {issue}\n{month_year}"
             for run in p.runs:
                 run.font.bold = True
             if WD_ALIGN_PARAGRAPH is not None:
@@ -346,6 +345,20 @@ def delete_after_page(doc: Document, page_number: int) -> None:
         next_elem = elem.getnext()
         body.remove(elem)
         elem = next_elem
+
+
+def remove_pages_from(doc: Document, start_page: int) -> int:
+    """Remove all pages beginning with ``start_page`` and return insertion index."""
+    pages = map_pages_to_paragraphs(doc)
+    paragraphs = pages.get(start_page)
+    if not paragraphs:
+        return len(doc.paragraphs)
+    first_p = paragraphs[0]
+    idx = doc.paragraphs.index(first_p)
+    while len(doc.paragraphs) > idx:
+        el = doc.paragraphs[idx]._element
+        el.getparent().remove(el)
+    return idx
 
 
 def apply_basic_formatting(
@@ -864,12 +877,15 @@ def update_journal(
     volume: str,
     issue: str,
     month_year: str,
-    section_title: str,
     cover_page_num: int = 1,
-    header_page_num: int = 2,
+    start_page: Optional[int] = None,
     article_files: Optional[List[Path]] = None,
 ) -> None:
     """Run the update process and append ``article_files`` if provided.
+
+    ``start_page`` specifies the page number where articles should be
+    inserted. If ``None`` old articles are cleared automatically based on
+    editorial headings.
 
     If ``article_files`` is ``None`` new articles are discovered using
     :func:`find_article_files` within ``content_path``.
@@ -877,22 +893,27 @@ def update_journal(
     doc = load_document(base_path)
     instructions = load_instructions(content_path)
 
-    update_front_cover(doc, volume, issue, month_year, section_title, cover_page_num)
+    update_front_cover(doc, volume, issue, month_year, cover_page_num)
     apply_footer_layout(doc, volume, issue, month_year.split()[-1])
     update_business_information(
         doc,
         "2023",
         "Annual subscription rates are: institutions $550, individuals $220, and students $110",
     )
-    header_text = f"Volume {volume}, Issue {issue}\n{month_year}\n{section_title}"
-    update_page2_header(doc, header_text, header_page_num)
+    header_text = f"Volume {volume}, Issue {issue}\n{month_year}"
+    update_page2_header(doc, header_text, 2)
     pres_message_path = content_path / "president_message.txt"
     message_text = pres_message_path.read_text() if pres_message_path.exists() else ""
     insert_presidents_message(doc, content_path / "president.jpg", message_text)
 
-    clear_articles_preserve_editorials(doc)
-
-    start_idx = len(doc.paragraphs)
+    if start_page is not None:
+        start_idx = remove_pages_from(doc, start_page)
+        if start_idx == len(doc.paragraphs):
+            clear_articles_preserve_editorials(doc)
+            start_idx = len(doc.paragraphs)
+    else:
+        clear_articles_preserve_editorials(doc)
+        start_idx = len(doc.paragraphs)
     files = (
         article_files if article_files is not None else find_article_files(content_path)
     )
@@ -923,9 +944,8 @@ def main_from_gui(
     volume: str,
     issue: str,
     month_year: str,
-    section_title: str,
     cover_page_num: int = 1,
-    header_page_num: int = 2,
+    start_page: Optional[int] = None,
     article_files: Optional[List[Path]] = None,
 ) -> None:
     """Helper for GUI front-end."""
@@ -936,9 +956,8 @@ def main_from_gui(
         volume,
         issue,
         month_year,
-        section_title,
         cover_page_num,
-        header_page_num,
+        start_page,
         article_files,
     )
 
@@ -951,9 +970,11 @@ def main():
     parser.add_argument("--volume", required=True)
     parser.add_argument("--issue", required=True)
     parser.add_argument("--month-year", required=True, dest="month_year")
-    parser.add_argument("--section-title", required=True, dest="section_title")
     parser.add_argument("--cover-page", type=int, default=1, dest="cover_page")
-    parser.add_argument("--header-page", type=int, default=2, dest="header_page")
+    parser.add_argument(
+        "--start-page", type=int, default=None, dest="start_page",
+        help="Page number where new articles begin"
+    )
     args = parser.parse_args()
 
     base_path = Path(args.base_doc)
@@ -971,9 +992,8 @@ def main():
         args.volume,
         args.issue,
         args.month_year,
-        args.section_title,
         args.cover_page,
-        args.header_page,
+        args.start_page,
         None,
     )
 
