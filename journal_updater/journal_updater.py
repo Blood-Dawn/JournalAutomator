@@ -9,6 +9,7 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 def load_document(path: Path) -> Document:
     """Open the Word file at ``path`` and return a ``Document`` object."""
@@ -75,6 +76,30 @@ def update_page2_header(doc: Document, new_header_line1: str, page_num: int) -> 
             if p.text.strip():
                 p.text = text
                 break
+
+
+def format_front_cover(doc: Document) -> None:
+    """Bold and center the first paragraph of the document."""
+    if not doc.paragraphs:
+        return
+    p = doc.paragraphs[0]
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in p.runs:
+        run.font.bold = True
+
+
+def layout_footer(doc: Document) -> None:
+    """Center footers across all sections."""
+    for section in doc.sections:
+        footer = section.footer
+        paragraph = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+def format_front_and_footer(doc: Document) -> None:
+    """Apply both front-cover formatting and footer layout tweaks."""
+    format_front_cover(doc)
+    layout_footer(doc)
 
 
 def update_associate_editors(
@@ -616,6 +641,8 @@ def update_journal(
         set_font_size(doc, start_idx, int(instructions["font_size"]))
     if "line_spacing" in instructions:
         set_line_spacing(doc, start_idx, float(instructions["line_spacing"]))
+    if instructions.get("format_front_and_footer"):
+        format_front_and_footer(doc)
 
     save_document(doc, output_path)
     pdf_path = output_path.with_suffix(".pdf")

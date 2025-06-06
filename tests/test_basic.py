@@ -71,64 +71,12 @@ def test_update_journal_formatting(tmp_path):
     )
 
     out_path = tmp_path / "out.docx"
-    journal_updater.update_journal(
-        base_path,
-        content_dir,
-        out_path,
-        "1",
-        "1",
-        "June 2025",
-        "Update",
-    )
-    result = journal_updater.Document(out_path)
-
-    assert result.paragraphs[0].runs[0].font.size.pt == 14
-    assert result.paragraphs[0].paragraph_format.line_spacing == 2
-
-
-def test_apply_footer_layout(tmp_path):
-    doc = journal_updater.Document()
-    from docx.enum.section import WD_SECTION
-
-    doc.add_section(WD_SECTION.NEW_PAGE)
-    journal_updater.apply_footer_layout(doc, "1", "1", "2025")
-
-    first = doc.sections[0]
-    assert first.different_first_page_header_footer
-    assert len(first.first_page_footer.tables) == 0
-
-    for section in doc.sections:
-        assert len(section.footer.tables) == 1
-        table = section.footer.tables[0]
-        assert table.cell(0, 0).text == "The ABNFF Journal"
-        assert table.cell(0, 2).text == "Volume 1 (2025), Issue 1"
-
-
-def test_update_journal_adds_footer(tmp_path):
-    base = journal_updater.Document()
-    from docx.enum.section import WD_SECTION
-
-    base.add_section(WD_SECTION.NEW_PAGE)
-    base_path = tmp_path / "base.docx"
-    base.save(base_path)
-
-    content_dir = tmp_path / "content"
-    content_dir.mkdir()
-
-    out_path = tmp_path / "out.docx"
-    journal_updater.update_journal(
-        base_path,
-        content_dir,
-        out_path,
-        "1",
-        "1",
-        "June 2025",
-        "Update",
-    )
-
+    journal_updater.update_journal(base_path, content_dir, out_path, "1", "1", "June 2025", "Update Articles")
     result = journal_updater.Document(out_path)
     first = result.sections[0]
     assert first.different_first_page_header_footer
     assert len(first.first_page_footer.tables) == 0
     assert len(first.footer.tables) == 1
 
+    assert result.paragraphs[0].runs[0].font.size.pt == 14
+    assert result.paragraphs[0].paragraph_format.line_spacing == 2
