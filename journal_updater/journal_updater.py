@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
@@ -349,6 +350,21 @@ def apply_basic_formatting(doc: Document, font_size: Optional[int], line_spacing
 def append_article(doc: Document, article_doc: Document):
     for element in article_doc.element.body:
         doc.element.body.append(element)
+
+
+def find_article_files(content_path: Path) -> List[Path]:
+    """Return article files matching ``article*.docx`` case-insensitively."""
+    pattern = "article"
+    files = sorted(
+        p
+        for p in content_path.iterdir()
+        if p.is_file() and p.name.lower().startswith(pattern) and p.suffix.lower() == ".docx"
+    )
+    if not files:
+        logging.warning(
+            "No article files found matching '%s*.docx' in %s", pattern, content_path
+        )
+    return files
 
 
 def map_pages_to_paragraphs(doc: Document) -> Dict[int, List['Paragraph']]:
@@ -817,7 +833,7 @@ def update_journal(
     clear_articles_preserve_editorials(doc)
 
     start_idx = len(doc.paragraphs)
-    for article_file in sorted(content_path.glob("article*.docx")):
+    for article_file in find_article_files(content_path):
         article_doc = Document(article_file)
         append_article(doc, article_doc)
     if "font_size" in instructions:
