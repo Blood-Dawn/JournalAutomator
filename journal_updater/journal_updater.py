@@ -116,11 +116,6 @@ def layout_footer(doc: Document) -> None:
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 
-def format_front_and_footer(doc: Document) -> None:
-    """Apply both front-cover formatting and footer layout tweaks."""
-    format_front_cover(doc)
-    layout_footer(doc)
-
 
 def update_associate_editors(
     doc: Document, remove_name: str, new_name: str, new_affiliation: str, new_email: str

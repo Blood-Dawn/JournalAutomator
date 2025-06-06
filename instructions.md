@@ -13,4 +13,4 @@ Use these helpers in combination with other utilities defined in `journal_update
 
 - `format_front_cover(doc)` – apply basic styling to the first paragraph on the front page.
 - `layout_footer(doc)` – center footer text across all sections.
-- `format_front_and_footer(doc)` – call both helpers at once.
+- `format_front_and_footer(doc, font_size=None, line_spacing=None)` – call both helpers with optional formatting parameters.
