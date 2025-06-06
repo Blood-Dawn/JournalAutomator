@@ -37,3 +37,18 @@ def test_update_page2_header(tmp_path):
     header_p.text = "Old header"
     journal_updater.update_page2_header(doc, "Volume 1", 2)
     assert "Page 2" in section.header.paragraphs[0].text
+
+
+def test_main_from_gui_default_output(tmp_path):
+    base_doc = tmp_path / "base.docx"
+    doc = journal_updater.Document()
+    doc.add_paragraph("Volume 1, Issue 1")
+    doc.save(base_doc)
+
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+
+    journal_updater.main_from_gui(base_doc, content_dir)
+
+    expected = base_doc.with_name(base_doc.stem + "_updated.docx")
+    assert expected.exists()

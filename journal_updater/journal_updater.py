@@ -312,21 +312,43 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
     pdf_path = output_path.with_suffix(".pdf")
     save_pdf(output_path, pdf_path)
 
-def main_from_gui(base_doc: Path, content_folder: Path, output_doc: Path) -> None:
-    """Helper for GUI front-end."""
-    update_journal(base_doc, content_folder, output_doc)
+def main_from_gui(
+    base_doc: Path, content_folder: Path, output_doc: Optional[Path] = None
+) -> None:
+    """Helper for GUI front-end.
+
+    If ``output_doc`` is not provided, the resulting file will be saved next to
+    ``base_doc`` with ``_updated`` appended to the original file name.
+    """
+    target = (
+        output_doc
+        if output_doc is not None
+        else base_doc.with_name(base_doc.stem + "_updated.docx")
+    )
+    update_journal(base_doc, content_folder, target)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Update ABNFF Journal document")
     parser.add_argument("base_doc")
     parser.add_argument("content_folder")
-    parser.add_argument("output_doc")
+    parser.add_argument(
+        "output_doc",
+        nargs="?",
+        help=(
+            "Path to save the updated DOCX. Defaults to <base_doc> with "
+            "'_updated.docx' appended"
+        ),
+    )
     args = parser.parse_args()
 
     base_path = Path(args.base_doc)
     content_path = Path(args.content_folder)
-    output_path = Path(args.output_doc)
+    output_path = (
+        Path(args.output_doc)
+        if args.output_doc
+        else base_path.with_name(base_path.stem + "_updated.docx")
+    )
 
     update_journal(base_path, content_path, output_path)
 
