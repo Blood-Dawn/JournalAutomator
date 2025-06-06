@@ -267,19 +267,26 @@ def load_instructions(content_path: Path) -> dict:
 
 
 def delete_after_page(doc: Document, page_number: int) -> None:
-    """Remove all content after the specified ``page_number``."""
-
-    pages = map_pages_to_paragraphs(doc)
-    to_remove: List['Paragraph'] = []
-    for num, paragraphs in pages.items():
-        if num > page_number:
-            to_remove.extend(paragraphs)
-
-    for p in reversed(to_remove):
-        elem = p._element
-        parent = elem.getparent()
-        parent.remove(elem)
-
+    """Remove all content after the paragraph containing ``Page {page_number}``."""
+    search = f"Page {page_number}"
+    target = None
+    for p in doc.paragraphs:
+        if search in p.text:
+            target = p
+            break
+    if target is None:
+        if page_number == 1 and doc.paragraphs:
+            target = doc.paragraphs[0]
+            if search not in target.text:
+                target.text = search
+        else:
+            return
+    body = target._element.getparent()
+    elem = target._element.getnext()
+    while elem is not None:
+        next_elem = elem.getnext()
+        body.remove(elem)
+        elem = next_elem
 
 def apply_basic_formatting(doc: Document, font_size: Optional[int], line_spacing: Optional[float]) -> None:
     """Set font size and line spacing across all paragraphs."""
