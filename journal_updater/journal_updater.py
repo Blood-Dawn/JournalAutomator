@@ -259,7 +259,12 @@ def load_instructions(content_path: Path) -> dict:
     if inst_file.exists():
         try:
             with inst_file.open("r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if "format_front_and_footer" in data and not isinstance(
+                    data["format_front_and_footer"], dict
+                ):
+                    data["format_front_and_footer"] = {}
+                return data
         except Exception as e:
             print(f"Failed to read instructions: {e}")
     return {}
@@ -309,6 +314,32 @@ def set_line_spacing(doc: Document, start_paragraph: int, spacing: float) -> Non
     """Set line spacing for paragraphs starting at ``start_paragraph``."""
     for p in doc.paragraphs[start_paragraph:]:
         p.paragraph_format.line_spacing = spacing
+
+
+def format_front_and_footer(
+    doc: Document,
+    font_size: Optional[int] = None,
+    line_spacing: Optional[float] = None,
+) -> None:
+    """Apply formatting to the front cover block and all footers."""
+
+    # front cover paragraph usually contains "Volume" text
+    for p in doc.paragraphs:
+        if "Volume" in p.text:
+            if line_spacing is not None:
+                p.paragraph_format.line_spacing = line_spacing
+            if font_size is not None:
+                for run in p.runs:
+                    run.font.size = Pt(font_size)
+            break
+
+    for section in doc.sections:
+        for p in section.footer.paragraphs:
+            if line_spacing is not None:
+                p.paragraph_format.line_spacing = line_spacing
+            if font_size is not None:
+                for run in p.runs:
+                    run.font.size = Pt(font_size)
 
 def reuse_journal_page(doc: Document, source_doc: Document, page_number: int) -> None:
     """Copy the specified page from ``source_doc`` into ``doc``."""
@@ -631,12 +662,7 @@ def update_journal(
 ) -> None:
     """Run the update process with explicit paths and parameters."""
     doc = load_document(base_path)
-    instr_path = content_path / "instructions.json"
-    instructions = {}
-    if instr_path.exists():
-        import json
-
-        instructions = json.loads(instr_path.read_text())
+    instructions = load_instructions(content_path)
 
     update_front_cover(doc, volume, issue, month_year, section_title, cover_page_num)
     apply_footer_layout(doc, volume, issue, month_year.split()[-1])
@@ -663,6 +689,14 @@ def update_journal(
         set_line_spacing(doc, start_idx, float(instructions["line_spacing"]))
     if instructions.get("format_front_and_footer"):
         format_front_and_footer(doc)
+
+    fmt = instructions.get("format_front_and_footer", {})
+    if fmt:
+        format_front_and_footer(
+            doc,
+            font_size=fmt.get("font_size"),
+            line_spacing=fmt.get("line_spacing"),
+        )
 
     save_document(doc, output_path)
     pdf_path = output_path.with_suffix(".pdf")
