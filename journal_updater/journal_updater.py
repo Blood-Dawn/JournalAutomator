@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 def load_document(path: Path) -> Document:
@@ -479,6 +480,87 @@ def add_page_borders(doc: Document, start_section: int) -> None:
         sectPr.append(pgBorders)
 
 
+def apply_footer_layout(doc: Document, volume: str, issue: str, year: str) -> None:
+    """Add standardized footers and leave the first page blank."""
+
+    try:
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        return
+
+    if not doc.sections:
+        return
+
+    first = doc.sections[0]
+    first.different_first_page_header_footer = True
+
+    def _clear_borders(table):
+        tbl_pr = table._tbl.tblPr
+        if tbl_pr is None:
+            tbl_pr = OxmlElement("w:tblPr")
+            table._tbl.insert(0, tbl_pr)
+        borders = OxmlElement("w:tblBorders")
+        for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            el = OxmlElement(f"w:{side}")
+            el.set(qn("w:val"), "nil")
+            borders.append(el)
+        tbl_pr.append(borders)
+
+    def _add_page_field(paragraph):
+        run = paragraph.add_run()
+        begin = OxmlElement("w:fldChar")
+        begin.set(qn("w:fldCharType"), "begin")
+        run._r.append(begin)
+        instr = OxmlElement("w:instrText")
+        instr.set(qn("xml:space"), "preserve")
+        instr.text = "PAGE"
+        run._r.append(instr)
+        separate = OxmlElement("w:fldChar")
+        separate.set(qn("w:fldCharType"), "separate")
+        run._r.append(separate)
+        paragraph.add_run("1")
+        end = OxmlElement("w:fldChar")
+        end.set(qn("w:fldCharType"), "end")
+        paragraph.add_run()._r.append(end)
+
+    for idx, section in enumerate(doc.sections):
+        if idx > 0:
+            try:
+                section.footer.is_linked_to_previous = False
+            except Exception:
+                pass
+        footer = section.footer
+        table = footer.add_table(rows=1, cols=3, width=section.page_width)
+        _clear_borders(table)
+
+        left_p = table.cell(0, 0).paragraphs[0]
+        left_p.text = "The ABNFF Journal"
+        left_p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        for r in left_p.runs:
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(0, 0, 0)
+
+        center_cell = table.cell(0, 1)
+        shd = OxmlElement("w:shd")
+        shd.set(qn("w:fill"), "000000")
+        center_cell._tc.get_or_add_tcPr().append(shd)
+        center_p = center_cell.paragraphs[0]
+        center_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _add_page_field(center_p)
+        for r in center_p.runs:
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(255, 255, 255)
+
+        right_p = table.cell(0, 2).paragraphs[0]
+        right_p.text = f"Volume {volume} ({year}), Issue {issue}"
+        right_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        for r in right_p.runs:
+            r.font.size = Pt(10)
+            r.font.color.rgb = RGBColor(0, 0, 0)
+
+
+
 def validate_issue_number_and_volume(doc: Document, expected_volume: str, expected_issue: str, expected_year: str) -> None:
     """Check volume/issue/year text appears once and matches expectations."""
     pass
@@ -512,6 +594,7 @@ def update_journal(
         instructions = json.loads(instr_path.read_text())
 
     update_front_cover(doc, volume, issue, month_year, section_title, cover_page_num)
+    apply_footer_layout(doc, volume, issue, month_year.split()[-1])
     update_business_information(
         doc,
         "2023",
