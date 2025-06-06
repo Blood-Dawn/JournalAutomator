@@ -45,7 +45,6 @@ def test_update_journal_with_instructions(tmp_path):
     doc = journal_updater.Document()
     doc.add_paragraph("Volume 1, Issue 1")
     doc.save(base_doc)
-
     content = tmp_path / "content"
     content.mkdir()
 
