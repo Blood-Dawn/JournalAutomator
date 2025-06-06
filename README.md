@@ -11,6 +11,7 @@ Many helper functions are provided so that future automation steps can call them
 individually (e.g. `update_front_cover`, `update_page2_header`, `clear_articles`,
 and more). Most advanced operations are currently placeholders but documented
 for future work.
+Recent additions provide helpers for formatting the front cover and centering footer text across all sections.
 
 For non‑technical users a small Tkinter GUI is provided. Launch it with:
 
@@ -52,6 +53,8 @@ The script performs a handful of automated replacements:
    under the **ARTICLES** section of the Table of Contents.
 6. Saves the resulting document and optionally attempts to export a PDF
    alongside it (requires `docx2pdf`).
+7. Applies optional front-cover formatting.
+8. Centers the footer layout across all pages.
 
 Ensure your base document includes a Table of Contents with an
 **ARTICLES** heading so article titles can be detected and removed.
@@ -61,14 +64,14 @@ point for further automation as outlined in the program goals.
 
 ### instructions.json
 
-An optional `instructions.json` file may be placed in the content folder to
-control certain aspects of the update. Supported keys are:
+An optional `instructions.json` file may be placed in the content folder to control certain aspects of the update. The `format_front_and_footer` flag triggers automatic styling of the front page and footer sections. Supported keys are:
 
 - `volume` – volume number for the issue.
 - `issue` – issue number.
 - `delete_after_page` – remove all content after this page number.
 - `font_size` – default font size to apply to all text (in points).
 - `line_spacing` – line spacing value (e.g. `1.0` or `1.15`).
+- `format_front_and_footer` – when true, apply front-cover formatting and footer layout.
 
 Example file:
 
@@ -78,6 +81,7 @@ Example file:
   "issue": "3",
   "delete_after_page": 2,
   "font_size": 10,
+  "format_front_and_footer": true,
   "line_spacing": 1.0
 }
 ```
