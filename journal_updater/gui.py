@@ -29,7 +29,11 @@ def run_gui():
             selected_content.set(path)
 
     def choose_output():
-        path = filedialog.asksaveasfilename(title="Save output DOCX", defaultextension=".docx", filetypes=[("Word files", "*.docx")])
+        path = filedialog.asksaveasfilename(
+            title="Save output DOCX",
+            defaultextension=".docx",
+            filetypes=[("Word files", "*.docx")],
+        )
         if path:
             selected_output.set(path)
 
@@ -46,6 +50,7 @@ def run_gui():
             messagebox.showerror("Missing information", "Please select all required paths")
             return
         try:
+            output_arg = Path(selected_output.get()) if selected_output.get() else None
             journal_updater.main_from_gui(
                 Path(selected_base.get()),
                 Path(selected_content.get()),
@@ -57,7 +62,6 @@ def run_gui():
                 cover_page.get(),
                 header_page.get(),
             )
-            messagebox.showinfo("Success", "Journal updated successfully")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update journal: {e}")
 
@@ -70,7 +74,7 @@ def run_gui():
     tk.Button(frm, text="Choose Content Folder", command=choose_content).grid(row=1, column=0, sticky="ew")
     tk.Label(frm, textvariable=selected_content, width=40, anchor="w").grid(row=1, column=1, padx=5)
 
-    tk.Button(frm, text="Choose Output DOCX", command=choose_output).grid(row=2, column=0, sticky="ew")
+    tk.Button(frm, text="Choose Output DOCX (optional)", command=choose_output).grid(row=2, column=0, sticky="ew")
     tk.Label(frm, textvariable=selected_output, width=40, anchor="w").grid(row=2, column=1, padx=5)
 
     row = 3

@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import journal_updater.journal_updater as journal_updater
@@ -37,3 +38,41 @@ def test_update_page2_header(tmp_path):
     header_p.text = "Old header"
     journal_updater.update_page2_header(doc, "Volume 1", 2)
     assert "Page 2" in section.header.paragraphs[0].text
+
+
+def test_font_utils():
+    doc = journal_updater.Document()
+    doc.add_paragraph("p0")
+    doc.add_paragraph("p1")
+
+    journal_updater.set_font_size(doc, 1, 16)
+    journal_updater.set_line_spacing(doc, 1, 1.5)
+
+    assert doc.paragraphs[1].runs[0].font.size.pt == 16
+    assert doc.paragraphs[1].paragraph_format.line_spacing == 1.5
+
+
+def test_update_journal_formatting(tmp_path):
+    base = journal_updater.Document()
+    base.add_paragraph("ARTICLES")
+    base_path = tmp_path / "base.docx"
+    base.save(base_path)
+
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    art = journal_updater.Document()
+    art.add_paragraph("Article text")
+    art.save(content_dir / "article1.docx")
+
+    import json
+
+    (content_dir / "instructions.json").write_text(
+        json.dumps({"font_size": 14, "line_spacing": 2})
+    )
+
+    out_path = tmp_path / "out.docx"
+    journal_updater.update_journal(base_path, content_dir, out_path)
+    result = journal_updater.Document(out_path)
+
+    assert result.paragraphs[1].runs[0].font.size.pt == 14
+    assert result.paragraphs[1].paragraph_format.line_spacing == 2
