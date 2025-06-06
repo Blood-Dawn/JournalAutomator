@@ -504,12 +504,7 @@ def update_journal(
 ) -> None:
     """Run the update process with explicit paths and parameters."""
     doc = load_document(base_path)
-    instr_path = content_path / "instructions.json"
-    instructions = {}
-    if instr_path.exists():
-        import json
-
-        instructions = json.loads(instr_path.read_text())
+    instructions = load_instructions(content_path)
 
     update_front_cover(doc, volume, issue, month_year, section_title, cover_page_num)
     update_business_information(
