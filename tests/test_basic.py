@@ -69,7 +69,11 @@ def test_update_journal_formatting(tmp_path):
     import json
 
     (content_dir / "instructions.json").write_text(
-        json.dumps({"font_size": 14, "line_spacing": 2})
+        json.dumps({
+            "font_size": 14,
+            "line_spacing": 2,
+            "font_family": "Times New Roman",
+        })
     )
 
     out_path = tmp_path / "out.docx"
@@ -90,6 +94,7 @@ def test_update_journal_formatting(tmp_path):
 
     assert result.paragraphs[0].runs[0].font.size.pt == 14
     assert result.paragraphs[0].paragraph_format.line_spacing == 2
+    assert result.paragraphs[0].runs[0].font.name == "Times New Roman"
 
 def test_format_front_and_footer(tmp_path):
     doc = journal_updater.Document()
