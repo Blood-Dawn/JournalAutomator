@@ -40,26 +40,39 @@ def test_update_page2_header(tmp_path):
     assert "Page 2" in section.header.paragraphs[0].text
 
 
-def test_update_journal_with_instructions(tmp_path):
-    base_doc = tmp_path / "base.docx"
+def test_font_utils():
     doc = journal_updater.Document()
-    doc.add_paragraph("Volume 1, Issue 1")
-    doc.save(base_doc)
-    content = tmp_path / "content"
-    content.mkdir()
+    doc.add_paragraph("p0")
+    doc.add_paragraph("p1")
 
-    instructions = {
-        "volume": "2",
-        "issue": "3",
-        "font_size": 10,
-        "line_spacing": 1.0,
-    }
-    (content / "instructions.json").write_text(json.dumps(instructions))
+    journal_updater.set_font_size(doc, 1, 16)
+    journal_updater.set_line_spacing(doc, 1, 1.5)
 
-    output_doc = tmp_path / "out.docx"
+    assert doc.paragraphs[1].runs[0].font.size.pt == 16
+    assert doc.paragraphs[1].paragraph_format.line_spacing == 1.5
 
-    journal_updater.update_journal(base_doc, content, output_doc)
 
-    out = journal_updater.load_document(output_doc)
-    assert "Volume 2" in out.paragraphs[0].text
-    assert out.paragraphs[0].paragraph_format.line_spacing == 1.0
+def test_update_journal_formatting(tmp_path):
+    base = journal_updater.Document()
+    base.add_paragraph("ARTICLES")
+    base_path = tmp_path / "base.docx"
+    base.save(base_path)
+
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    art = journal_updater.Document()
+    art.add_paragraph("Article text")
+    art.save(content_dir / "article1.docx")
+
+    import json
+
+    (content_dir / "instructions.json").write_text(
+        json.dumps({"font_size": 14, "line_spacing": 2})
+    )
+
+    out_path = tmp_path / "out.docx"
+    journal_updater.update_journal(base_path, content_dir, out_path)
+    result = journal_updater.Document(out_path)
+
+    assert result.paragraphs[1].runs[0].font.size.pt == 14
+    assert result.paragraphs[1].paragraph_format.line_spacing == 2

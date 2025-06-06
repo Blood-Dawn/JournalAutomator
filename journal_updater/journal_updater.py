@@ -172,6 +172,19 @@ def append_article(doc: Document, article_doc: Document):
     for element in article_doc.element.body:
         doc.element.body.append(element)
 
+
+def set_font_size(doc: Document, start_paragraph: int, size: int) -> None:
+    """Apply ``size`` point font to paragraphs starting at ``start_paragraph``."""
+    for p in doc.paragraphs[start_paragraph:]:
+        for run in p.runs:
+            run.font.size = Pt(size)
+
+
+def set_line_spacing(doc: Document, start_paragraph: int, spacing: float) -> None:
+    """Set line spacing for paragraphs starting at ``start_paragraph``."""
+    for p in doc.paragraphs[start_paragraph:]:
+        p.paragraph_format.line_spacing = spacing
+
 def reuse_journal_page(doc: Document, source_doc: Document, page_number: int) -> None:
     """Copy the specified page from ``source_doc`` into ``doc``."""
     # Complex page-level manipulation is not implemented; placeholder only.
@@ -402,16 +415,14 @@ def save_pdf(doc_path: Path, pdf_path: Path):
 def update_journal(base_path: Path, content_path: Path, output_path: Path) -> None:
     """Run the update process with explicit paths."""
     doc = load_document(base_path)
+    instr_path = content_path / "instructions.json"
+    instructions = {}
+    if instr_path.exists():
+        import json
 
-    instructions = load_instructions(content_path)
+        instructions = json.loads(instr_path.read_text())
 
-    volume = instructions.get("volume", "1")
-    issue = instructions.get("issue", "1")
-    delete_page = instructions.get("delete_after_page")
-    font_size = instructions.get("font_size")
-    line_spacing = instructions.get("line_spacing")
-
-    update_front_cover(doc, volume, issue, "June 2025", "Update Articles", 1)
+    update_front_cover(doc, "1", "1", "June 2025", "Update Articles", 1)
     update_business_information(
         doc,
         "2023",
@@ -425,14 +436,14 @@ def update_journal(base_path: Path, content_path: Path, output_path: Path) -> No
 
     clear_articles(doc)
 
+    start_idx = len(doc.paragraphs)
     for article_file in sorted(content_path.glob("article*.docx")):
         article_doc = Document(article_file)
         append_article(doc, article_doc)
-
-    if isinstance(delete_page, int):
-        delete_after_page(doc, delete_page)
-
-    apply_basic_formatting(doc, font_size, line_spacing)
+    if "font_size" in instructions:
+        set_font_size(doc, start_idx, int(instructions["font_size"]))
+    if "line_spacing" in instructions:
+        set_line_spacing(doc, start_idx, float(instructions["line_spacing"]))
 
     save_document(doc, output_path)
     pdf_path = output_path.with_suffix(".pdf")
