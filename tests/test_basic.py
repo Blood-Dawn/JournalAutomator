@@ -29,6 +29,8 @@ def test_load_and_update_front_cover(tmp_path):
     loaded = journal_updater.load_document(doc_path)
     journal_updater.update_front_cover(loaded, "1", "1", "June 2025", "Update Articles", 1)
     assert "June 2025" in loaded.paragraphs[0].text
+    assert "Page" not in loaded.paragraphs[0].text
+    assert all(run.font.bold for run in loaded.paragraphs[0].runs)
 
 
 def test_update_page2_header(tmp_path):
@@ -81,6 +83,21 @@ def test_update_journal_formatting(tmp_path):
         "Update Articles",
     )
     result = journal_updater.Document(out_path)
+    first = result.sections[0]
+    assert first.different_first_page_header_footer
+    assert len(first.first_page_footer.tables) == 0
+    assert len(first.footer.tables) == 1
+
+    assert result.paragraphs[0].runs[0].font.size.pt == 14
+    assert result.paragraphs[0].paragraph_format.line_spacing == 2
+
+def test_format_front_and_footer(tmp_path):
+    doc = journal_updater.Document()
+    p = doc.add_paragraph("Volume 1")
+    footer_p = doc.sections[0].footer.paragraphs[0]
+    footer_p.text = "footer"
+
+    journal_updater.format_front_and_footer(doc, font_size=13, line_spacing=1.25)
 
     assert result.paragraphs[0].runs[0].font.size.pt == 14
     assert result.paragraphs[0].paragraph_format.line_spacing == 2

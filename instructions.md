@@ -8,3 +8,9 @@ This project provides various helper functions to automate updates to the ABNFF 
 - `add_page_borders(doc, start_section)` – add simple left and right borders starting with the specified section.
 
 Use these helpers in combination with other utilities defined in `journal_updater.py` to customize your journal layout.
+
+## Front cover and footer
+
+- `format_front_cover(doc)` – apply basic styling to the first paragraph on the front page.
+- `layout_footer(doc)` – center footer text across all sections.
+- `format_front_and_footer(doc)` – call both helpers at once.
