@@ -72,6 +72,8 @@ An optional `instructions.json` file may be placed in the content folder to cont
 - `volume` – volume number for the issue.
 - `issue` – issue number.
 - `delete_after_page` – remove all content after this page number.
+- `delete_after_editorial` – remove all content after the last editorial page.
+- `cleanup_black_lines` – remove duplicate separation lines on each page.
 - `font_size` – default font size to apply to all text (in points).
 - `line_spacing` – line spacing value (e.g. `1.0` or `1.15`).
 - `font_family` – default font family name to apply across the document.
@@ -88,6 +90,8 @@ Example file:
   "volume": "2",
   "issue": "3",
   "delete_after_page": 2,
+  "delete_after_editorial": false,
+  "cleanup_black_lines": true,
   "font_size": 10,
   "line_spacing": 1.0,
   "font_family": "Times New Roman",

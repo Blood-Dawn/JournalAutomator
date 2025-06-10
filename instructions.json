@@ -2,5 +2,7 @@
   "font_size": 12,
   "line_spacing": 1.5,
   "delete_after_page": 1,
-  "font_family": "Times New Roman"
+  "font_family": "Times New Roman",
+  "delete_after_editorial": false,
+  "cleanup_black_lines": false
 }
