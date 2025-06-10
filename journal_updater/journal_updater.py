@@ -362,6 +362,62 @@ def delete_after_page(doc: Document, page_number: int) -> None:
         el.getparent().remove(el)
 
 
+def _find_last_editorial_page(doc: Document) -> Optional[int]:
+    """Return the last page number containing an editorial heading."""
+
+    pages = map_pages_to_paragraphs(doc)
+    last = None
+    for page_num, paragraphs in pages.items():
+        for p in paragraphs:
+            text = p.text.strip().lower()
+            if "editorial" in text or "president's message" in text:
+                if last is None or page_num > last:
+                    last = page_num
+    return last
+
+
+def delete_after_editorial(doc: Document) -> None:
+    """Remove all pages following the last editorial section."""
+
+    last_page = _find_last_editorial_page(doc)
+    if last_page is not None:
+        delete_after_page(doc, last_page)
+
+
+def _is_line_paragraph(paragraph) -> bool:
+    """Return ``True`` if ``paragraph`` represents a horizontal line."""
+
+    text = paragraph.text.strip()
+    if text and len(text) >= 3 and all(ch in "-_—–" for ch in text):
+        return True
+    try:
+        from docx.oxml.ns import qn
+    except Exception:
+        return False
+    pPr = paragraph._p.pPr
+    if pPr is not None:
+        for b in pPr.findall(qn("w:pBdr")):
+            bottom = b.find(qn("w:bottom"))
+            if bottom is not None and bottom.get(qn("w:val")) != "nil":
+                return True
+    return False
+
+
+def cleanup_black_lines(doc: Document) -> None:
+    """Remove duplicate horizontal lines from each page."""
+
+    pages = map_pages_to_paragraphs(doc)
+    for paragraphs in pages.values():
+        found = False
+        for p in list(paragraphs):
+            if _is_line_paragraph(p):
+                if found:
+                    el = p._element
+                    el.getparent().remove(el)
+                else:
+                    found = True
+
+
 def remove_pages_from(doc: Document, start_page: int) -> int:
     """Remove all pages beginning with ``start_page`` and return insertion index."""
     pages = map_pages_to_paragraphs(doc)
@@ -962,6 +1018,12 @@ def update_journal(
             delete_after_page(doc, int(instructions["delete_after_page"]))
         except Exception:
             pass
+    if instructions.get("delete_after_editorial"):
+        delete_after_editorial(doc)
+    if instructions.get("cleanup_black_lines"):
+        cleanup_black_lines(doc)
+
+    update_table_of_contents(doc)
 
     save_document(doc, output_path)
     pdf_path = output_path.with_suffix(".pdf")
