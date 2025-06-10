@@ -1055,7 +1055,26 @@ def update_journal(
     insert_presidents_message(doc, content_path / "president.jpg", message_text)
 
     if start_page is not None:
-        start_idx = remove_pages_from(doc, start_page)
+        delete_after_page(doc, start_page)
+        start_idx = len(doc.paragraphs)
+        try:
+            from docx.oxml.ns import qn
+        except Exception:
+            qn = None
+        for section in doc.sections:
+            ps = getattr(section, "page_setup", None)
+            if ps is not None and hasattr(ps, "left_border"):
+                try:
+                    ps.left_border = None
+                    ps.right_border = None
+                    ps.top_border = None
+                    ps.bottom_border = None
+                except Exception:
+                    pass
+            if qn is not None:
+                sectPr = section._sectPr
+                for b in list(sectPr.findall(qn("w:pgBorders"))):
+                    sectPr.remove(b)
         if start_idx == len(doc.paragraphs):
             clear_articles_preserve_editorials(doc)
             start_idx = len(doc.paragraphs)
