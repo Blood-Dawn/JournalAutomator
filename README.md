@@ -11,9 +11,9 @@ Many helper functions are provided so that future automation steps can call them
 individually (e.g. `update_front_cover`, `update_page2_header`, `clear_articles`,
 and more). Most advanced operations are currently placeholders but documented
 for future work.
-Recent additions provide helpers for formatting the front cover, centering
-footer text across all sections and adding optional page center lines with
-`add_page_borders_with_rule`.
+Recent additions provide helpers for formatting the front cover and centering footer text across all sections.
+An additional helper `add_page_borders_with_rule(doc, start_section, add_center_line=False)`
+adds left and right borders and can optionally draw a vertical rule down the center of each page.
 
 For non‑technical users a small Tkinter GUI is provided. Launch it with:
 
