@@ -483,6 +483,55 @@ def map_pages_to_paragraphs(doc: Document) -> Dict[int, List["Paragraph"]]:
     return pages
 
 
+def autofit_first_table(doc: Document, page_num: int) -> None:
+    """Autofit the first table on ``page_num`` if one exists."""
+
+    pages = map_pages_to_paragraphs(doc)
+    if page_num not in pages:
+        return
+
+    para_to_page = {p._element: n for n, ps in pages.items() for p in ps}
+
+    try:
+        from docx.table import Table
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:  # pragma: no cover - python-docx not installed
+        Table = None  # type: ignore
+
+    current_page = 1
+    for el in doc.element.body.iterchildren():
+        tag = el.tag.rsplit("}", 1)[-1]
+        if tag == "p" and el in para_to_page:
+            current_page = para_to_page[el]
+            if el.xpath('.//w:br[@w:type="page"]'):
+                current_page += 1
+        elif tag == "tbl" and current_page == page_num and Table is not None:
+            try:
+                table = Table(el, doc)
+                try:
+                    table.autofit = True
+                except Exception:
+                    try:
+                        tbl_pr = table._tbl.tblPr
+                        if tbl_pr is None:
+                            tbl_pr = OxmlElement("w:tblPr")
+                            table._tbl.insert(0, tbl_pr)
+                        layout = tbl_pr.find(qn("w:tblLayout"))
+                        if layout is None:
+                            layout = OxmlElement("w:tblLayout")
+                            tbl_pr.append(layout)
+                        layout.set(qn("w:type"), "autofit")
+                        for col in table._tbl.findall(qn("w:gridCol")):
+                            col.set(qn("w:w"), "0")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            break
+
+
+
 def set_font_size(doc: Document, start_paragraph: int, size: int) -> None:
     """Apply ``size`` point font to paragraphs starting at ``start_paragraph``."""
     for p in doc.paragraphs[start_paragraph:]:
@@ -1022,6 +1071,11 @@ def update_journal(
         delete_after_editorial(doc)
     if instructions.get("cleanup_black_lines"):
         cleanup_black_lines(doc)
+    if "autofit_table_on_page" in instructions:
+        try:
+            autofit_first_table(doc, int(instructions["autofit_table_on_page"]))
+        except Exception:
+            pass
 
     update_table_of_contents(doc)
 
