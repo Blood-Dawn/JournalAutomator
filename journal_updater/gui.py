@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
+from tkinter import ttk
 from pathlib import Path
 from . import journal_updater
 
@@ -9,6 +10,7 @@ def run_gui():
     root.title("ABNFF Journal Updater")
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
+    ttk.Style().configure("TButton", padding=5)
 
     selected_base = tk.StringVar()
     selected_content = tk.StringVar()
@@ -88,68 +90,69 @@ def run_gui():
                 line_spacing=ls,
                 font_family=ff,
             )
+            messagebox.showinfo("Success", "Journal updated successfully")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update journal: {e}")
 
-    frm = tk.Frame(root, padx=10, pady=10)
+    frm = ttk.Frame(root, padding=10)
     frm.pack(fill="both", expand=True)
     frm.columnconfigure(1, weight=1)
 
-    tk.Button(frm, text="Choose Base DOCX", command=choose_base).grid(
+    ttk.Button(frm, text="Choose Base DOCX", command=choose_base).grid(
         row=0, column=0, sticky="ew"
     )
-    tk.Label(frm, textvariable=selected_base, anchor="w").grid(
+    ttk.Label(frm, textvariable=selected_base, anchor="w").grid(
         row=0, column=1, padx=5, sticky="ew"
     )
 
-    tk.Button(frm, text="Choose Content Folder", command=choose_content).grid(
+    ttk.Button(frm, text="Choose Content Folder", command=choose_content).grid(
         row=1, column=0, sticky="ew"
     )
-    tk.Label(frm, textvariable=selected_content, anchor="w").grid(
+    ttk.Label(frm, textvariable=selected_content, anchor="w").grid(
         row=1, column=1, padx=5, sticky="ew"
     )
 
-    tk.Button(frm, text="Choose Output DOCX (optional)", command=choose_output).grid(
+    ttk.Button(frm, text="Choose Output DOCX (optional)", command=choose_output).grid(
         row=2, column=0, sticky="ew"
     )
-    tk.Label(frm, textvariable=selected_output, anchor="w").grid(
+    ttk.Label(frm, textvariable=selected_output, anchor="w").grid(
         row=2, column=1, padx=5, sticky="ew"
     )
 
-    tk.Button(frm, text="Choose Article Files", command=choose_articles).grid(
+    ttk.Button(frm, text="Choose Article Files", command=choose_articles).grid(
         row=3, column=0, sticky="ew"
     )
-    tk.Label(frm, textvariable=articles_label, anchor="w").grid(
+    ttk.Label(frm, textvariable=articles_label, anchor="w").grid(
         row=3, column=1, padx=5, sticky="ew"
     )
 
     row = 4
-    tk.Label(frm, text="Volume:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=volume).grid(row=row, column=1, sticky="ew")
+    ttk.Label(frm, text="Volume:").grid(row=row, column=0, sticky="e")
+    ttk.Entry(frm, textvariable=volume).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Issue:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=issue).grid(row=row, column=1, sticky="ew")
+    ttk.Label(frm, text="Issue:").grid(row=row, column=0, sticky="e")
+    ttk.Entry(frm, textvariable=issue).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Month/Year:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=month_year).grid(row=row, column=1, sticky="ew")
+    ttk.Label(frm, text="Month/Year:").grid(row=row, column=0, sticky="e")
+    ttk.Entry(frm, textvariable=month_year).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Cover Page #:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=cover_page).grid(row=row, column=1, sticky="ew")
+    ttk.Label(frm, text="Cover Page #:").grid(row=row, column=0, sticky="e")
+    ttk.Entry(frm, textvariable=cover_page).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Start Page #:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=start_page).grid(row=row, column=1, sticky="ew")
+    ttk.Label(frm, text="Start Page #:").grid(row=row, column=0, sticky="e")
+    ttk.Entry(frm, textvariable=start_page).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Font Size:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=font_size).grid(row=row, column=1, sticky="ew")
+    ttk.Label(frm, text="Font Size:").grid(row=row, column=0, sticky="e")
+    ttk.Entry(frm, textvariable=font_size).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Line Spacing:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=line_spacing).grid(row=row, column=1, sticky="ew")
+    ttk.Label(frm, text="Line Spacing:").grid(row=row, column=0, sticky="e")
+    ttk.Entry(frm, textvariable=line_spacing).grid(row=row, column=1, sticky="ew")
     row += 1
-    tk.Label(frm, text="Font Family:").grid(row=row, column=0, sticky="e")
-    tk.Entry(frm, textvariable=font_family).grid(row=row, column=1, sticky="ew")
+    ttk.Label(frm, text="Font Family:").grid(row=row, column=0, sticky="e")
+    ttk.Entry(frm, textvariable=font_family).grid(row=row, column=1, sticky="ew")
     row += 1
 
-    tk.Button(frm, text="Run Update", command=run_update).grid(
+    ttk.Button(frm, text="Run Update", command=run_update).grid(
         row=row, column=0, columnspan=2, pady=5
     )
 

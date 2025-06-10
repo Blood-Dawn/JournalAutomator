@@ -973,9 +973,12 @@ def add_page_borders_with_rule(
 
     try:
         from docx.oxml import OxmlElement
-        from docx.oxml.ns import qn
+        from docx.oxml.ns import qn, nsmap
     except Exception:
         return
+
+    # ensure the ``v`` namespace is available for callers using ``qn('v:shape')``
+    nsmap.setdefault("v", "urn:schemas-microsoft-com:vml")
 
     for idx, section in enumerate(doc.sections):
         if idx < start_section:
@@ -984,10 +987,17 @@ def add_page_borders_with_rule(
         header = section.header
         paragraph = header.add_paragraph()
         pict = OxmlElement("w:pict")
-        shape = OxmlElement("w:shape")
-        shape.set(qn("w:id"), f"center_rule_{idx}")
-        shape.set(qn("w:style"), "position:absolute;left:50%;top:0;width:0;height:100%")
-        pict.append(shape)
+
+        shape_w = OxmlElement("w:shape")
+        shape_w.set(qn("w:id"), f"center_rule_{idx}")
+        shape_w.set(qn("w:style"), "position:absolute;left:50%;top:0;width:0;height:100%")
+        pict.append(shape_w)
+
+        shape_v = OxmlElement("v:shape")
+        shape_v.set("id", f"center_rule_{idx}_v")
+        shape_v.set("style", "position:absolute;left:50%;top:0;width:0;height:100%")
+        pict.append(shape_v)
+
         paragraph._p.append(pict)
 
 
@@ -1101,8 +1111,11 @@ def save_pdf(doc_path: Path, pdf_path: Path) -> None:
 
     try:
         from docx2pdf import convert
+        import io
+        import contextlib
 
-        convert(str(doc_path), str(pdf_path))
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            convert(str(doc_path), str(pdf_path))
     except Exception as e:  # pragma: no cover - depends on Windows/Word
         err = str(e).lower()
         if "corrupted" in err:
