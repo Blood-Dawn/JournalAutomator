@@ -10,10 +10,10 @@ updated it can optionally be exported to PDF using `docx2pdf`.
 Many helper functions are provided so that future automation steps can call them
 individually (e.g. `update_front_cover`, `update_page2_header`, `clear_articles`,
 and more). Most advanced operations are currently placeholders but documented
-for future work.
-Recent additions provide helpers for formatting the front cover and centering footer text across all sections.
-An additional helper `add_page_borders_with_rule(doc, start_section, add_center_line=False)`
-adds left and right borders and can optionally draw a vertical rule down the center of each page.
+for future work. Recent additions provide helpers for formatting the front cover,
+centering footer text, and inserting styled article titles via
+`insert_article_title` (built on lower‑level functions such as
+`make_article_title` and `white_header_block`).
 
 For non‑technical users a small Tkinter GUI is provided. Launch it with:
 
@@ -60,7 +60,9 @@ The script performs a handful of automated replacements:
    alongside it (requires `docx2pdf`).
 7. Applies optional front-cover formatting.
 8. Centers the footer layout across all pages.
-9. Inserts a vertical center rule when using `add_page_borders_with_rule`.
+9. Inserts a simple decorative header for each imported article.
+
+
 
 Ensure your base document includes a Table of Contents with an
 **ARTICLES** heading so article titles can be detected and removed.
