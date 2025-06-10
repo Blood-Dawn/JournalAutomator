@@ -60,6 +60,7 @@ The script performs a handful of automated replacements:
    alongside it (requires `docx2pdf`).
 7. Applies optional front-cover formatting.
 8. Centers the footer layout across all pages.
+9. Inserts a vertical center rule when using `add_page_borders_with_rule`.
 
 Ensure your base document includes a Table of Contents with an
 **ARTICLES** heading so article titles can be detected and removed.
