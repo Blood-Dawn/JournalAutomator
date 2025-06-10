@@ -875,13 +875,25 @@ def validate_issue_number_and_volume(
         raise ValueError("Volume/issue/year text not found exactly once")
 
 
-def save_pdf(doc_path: Path, pdf_path: Path):
+def save_pdf(doc_path: Path, pdf_path: Path) -> None:
+    """Export ``doc_path`` to ``pdf_path`` using ``docx2pdf``.
+
+    The underlying ``docx2pdf`` call relies on Microsoft Word. On some systems
+    Word may report that the file is corrupted and abort the export. This error
+    should not stop the rest of the update process, so we catch it and only
+    log a warning instead of raising an exception.
+    """
+
     try:
         from docx2pdf import convert
 
         convert(str(doc_path), str(pdf_path))
-    except Exception as e:
-        print(f"PDF export failed: {e}")
+    except Exception as e:  # pragma: no cover - depends on Windows/Word
+        err = str(e).lower()
+        if "corrupted" in err:
+            print(f"Warning: PDF export skipped—Word reported corruption: {e}")
+        else:
+            print(f"PDF export failed: {e}")
 
 
 def update_journal(
