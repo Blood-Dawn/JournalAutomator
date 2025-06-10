@@ -529,6 +529,65 @@ def format_front_and_footer(
                     run.font.size = Pt(font_size)
 
 
+def _shape_element(style: str, fill: str = "none", stroke: str = "000000"):
+    """Return a ``<w:pict>/<v:shape>`` element with the given style."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import nsmap
+
+    if "v" not in nsmap:
+        nsmap["v"] = "urn:schemas-microsoft-com:vml"
+
+    pict = OxmlElement("w:pict")
+    shape = OxmlElement("v:shape")
+    shape.set("type", "#_x0000_t75")
+    shape.set("style", style)
+    shape.set("strokecolor", stroke)
+    shape.set("fillcolor", fill)
+    pict.append(shape)
+    return pict
+
+
+def make_article_title() -> "CT_P":
+    """Return an XML block for a horizontal line used under article titles."""
+
+    style = "width:468pt;height:1pt"  # simple full width line
+    return _shape_element(style)
+
+
+def make_editorial_header() -> "CT_P":
+    """Return an XML block used for editorial section headers."""
+
+    style = "width:468pt;height:1pt"  # same as article title for now
+    return _shape_element(style)
+
+
+def make_columns(height: int = 720) -> "CT_P":
+    """Return an XML block with a vertical line splitting two columns."""
+
+    left = _shape_element(
+        f"position:absolute;left:234pt;top:0;width:0pt;height:{height}pt"
+    )
+    pict = left
+    return pict
+
+
+def white_header_block(width: int = 468, height: int = 24) -> "CT_P":
+    """Return a filled white rectangle used behind headers."""
+
+    style = f"width:{width}pt;height:{height}pt"
+    return _shape_element(style, fill="white")
+
+
+def insert_article_title(doc: Document, text: str) -> None:
+    """Insert a stylized article title and decorative line."""
+
+    p = doc.add_paragraph(text)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for r in p.runs:
+        r.font.bold = True
+    p._p.append(make_article_title())
+
+
 def reuse_journal_page(doc: Document, source_doc: Document, page_number: int) -> None:
     """Copy the specified page from ``source_doc`` into ``doc``."""
     # Complex page-level manipulation is not implemented; placeholder only.
@@ -1005,6 +1064,7 @@ def update_journal(
         article_files if article_files is not None else find_article_files(content_path)
     )
     for article_file in files:
+        insert_article_title(doc, article_file.stem.replace("_", " "))
         article_doc = Document(article_file)
         append_article(doc, article_doc)
     if "font_size" in instructions:
