@@ -503,6 +503,27 @@ def set_font_family(doc: Document, start_paragraph: int, font_name: str) -> None
             run.font.name = font_name
 
 
+def set_font_size_from_page(doc: Document, page_num: int, size: int) -> None:
+    """Apply ``size`` point font to all paragraphs on and after ``page_num``."""
+
+    pages = map_pages_to_paragraphs(doc)
+    for num in sorted(pages):
+        if num >= page_num:
+            for p in pages[num]:
+                for run in p.runs:
+                    run.font.size = Pt(size)
+
+
+def set_line_spacing_from_page(doc: Document, page_num: int, spacing: float) -> None:
+    """Set line spacing for paragraphs on and after ``page_num``."""
+
+    pages = map_pages_to_paragraphs(doc)
+    for num in sorted(pages):
+        if num >= page_num:
+            for p in pages[num]:
+                p.paragraph_format.line_spacing = spacing
+
+
 def format_front_and_footer(
     doc: Document,
     font_size: Optional[int] = None,
@@ -1013,6 +1034,26 @@ def update_journal(
         set_line_spacing(doc, start_idx, float(instructions["line_spacing"]))
     if "font_family" in instructions:
         set_font_family(doc, start_idx, instructions["font_family"])
+    if "font_size_from_page" in instructions:
+        info = instructions["font_size_from_page"]
+        if isinstance(info, dict):
+            page = info.get("page")
+            size = info.get("size")
+            if page is not None and size is not None:
+                try:
+                    set_font_size_from_page(doc, int(page), int(size))
+                except Exception:
+                    pass
+    if "line_spacing_from_page" in instructions:
+        info = instructions["line_spacing_from_page"]
+        if isinstance(info, dict):
+            page = info.get("page")
+            spacing = info.get("spacing")
+            if page is not None and spacing is not None:
+                try:
+                    set_line_spacing_from_page(doc, int(page), float(spacing))
+                except Exception:
+                    pass
     if "delete_after_page" in instructions:
         try:
             delete_after_page(doc, int(instructions["delete_after_page"]))
