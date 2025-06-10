@@ -483,6 +483,55 @@ def map_pages_to_paragraphs(doc: Document) -> Dict[int, List["Paragraph"]]:
     return pages
 
 
+def autofit_first_table(doc: Document, page_num: int) -> None:
+    """Autofit the first table on ``page_num`` if one exists."""
+
+    pages = map_pages_to_paragraphs(doc)
+    if page_num not in pages:
+        return
+
+    para_to_page = {p._element: n for n, ps in pages.items() for p in ps}
+
+    try:
+        from docx.table import Table
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:  # pragma: no cover - python-docx not installed
+        Table = None  # type: ignore
+
+    current_page = 1
+    for el in doc.element.body.iterchildren():
+        tag = el.tag.rsplit("}", 1)[-1]
+        if tag == "p" and el in para_to_page:
+            current_page = para_to_page[el]
+            if el.xpath('.//w:br[@w:type="page"]'):
+                current_page += 1
+        elif tag == "tbl" and current_page == page_num and Table is not None:
+            try:
+                table = Table(el, doc)
+                try:
+                    table.autofit = True
+                except Exception:
+                    try:
+                        tbl_pr = table._tbl.tblPr
+                        if tbl_pr is None:
+                            tbl_pr = OxmlElement("w:tblPr")
+                            table._tbl.insert(0, tbl_pr)
+                        layout = tbl_pr.find(qn("w:tblLayout"))
+                        if layout is None:
+                            layout = OxmlElement("w:tblLayout")
+                            tbl_pr.append(layout)
+                        layout.set(qn("w:type"), "autofit")
+                        for col in table._tbl.findall(qn("w:gridCol")):
+                            col.set(qn("w:w"), "0")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            break
+
+
+
 def set_font_size(doc: Document, start_paragraph: int, size: int) -> None:
     """Apply ``size`` point font to paragraphs starting at ``start_paragraph``."""
     for p in doc.paragraphs[start_paragraph:]:
@@ -501,6 +550,27 @@ def set_font_family(doc: Document, start_paragraph: int, font_name: str) -> None
     for p in doc.paragraphs[start_paragraph:]:
         for run in p.runs:
             run.font.name = font_name
+
+
+def set_font_size_from_page(doc: Document, page_num: int, size: int) -> None:
+    """Apply ``size`` point font to all paragraphs on and after ``page_num``."""
+
+    pages = map_pages_to_paragraphs(doc)
+    for num in sorted(pages):
+        if num >= page_num:
+            for p in pages[num]:
+                for run in p.runs:
+                    run.font.size = Pt(size)
+
+
+def set_line_spacing_from_page(doc: Document, page_num: int, spacing: float) -> None:
+    """Set line spacing for paragraphs on and after ``page_num``."""
+
+    pages = map_pages_to_paragraphs(doc)
+    for num in sorted(pages):
+        if num >= page_num:
+            for p in pages[num]:
+                p.paragraph_format.line_spacing = spacing
 
 
 def format_front_and_footer(
@@ -891,6 +961,36 @@ def add_page_borders(doc: Document, start_section: int) -> None:
         sectPr.append(pgBorders)
 
 
+def add_page_borders_with_rule(
+    doc: Document, start_section: int, add_center_line: bool = False
+) -> None:
+    """Add borders and optionally a vertical rule at the page center."""
+
+    add_page_borders(doc, start_section)
+
+    if not add_center_line:
+        return
+
+    try:
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+    except Exception:
+        return
+
+    for idx, section in enumerate(doc.sections):
+        if idx < start_section:
+            continue
+
+        header = section.header
+        paragraph = header.add_paragraph()
+        pict = OxmlElement("w:pict")
+        shape = OxmlElement("w:shape")
+        shape.set(qn("w:id"), f"center_rule_{idx}")
+        shape.set(qn("w:style"), "position:absolute;left:50%;top:0;width:0;height:100%")
+        pict.append(shape)
+        paragraph._p.append(pict)
+
+
 def apply_footer_layout(doc: Document, volume: str, issue: str, year: str) -> None:
     """Add standardized footers and leave the first page blank."""
 
@@ -1053,7 +1153,26 @@ def update_journal(
     insert_presidents_message(doc, content_path / "president.jpg", message_text)
 
     if start_page is not None:
-        start_idx = remove_pages_from(doc, start_page)
+        delete_after_page(doc, start_page)
+        start_idx = len(doc.paragraphs)
+        try:
+            from docx.oxml.ns import qn
+        except Exception:
+            qn = None
+        for section in doc.sections:
+            ps = getattr(section, "page_setup", None)
+            if ps is not None and hasattr(ps, "left_border"):
+                try:
+                    ps.left_border = None
+                    ps.right_border = None
+                    ps.top_border = None
+                    ps.bottom_border = None
+                except Exception:
+                    pass
+            if qn is not None:
+                sectPr = section._sectPr
+                for b in list(sectPr.findall(qn("w:pgBorders"))):
+                    sectPr.remove(b)
         if start_idx == len(doc.paragraphs):
             clear_articles_preserve_editorials(doc)
             start_idx = len(doc.paragraphs)
@@ -1073,6 +1192,26 @@ def update_journal(
         set_line_spacing(doc, start_idx, float(instructions["line_spacing"]))
     if "font_family" in instructions:
         set_font_family(doc, start_idx, instructions["font_family"])
+    if "font_size_from_page" in instructions:
+        info = instructions["font_size_from_page"]
+        if isinstance(info, dict):
+            page = info.get("page")
+            size = info.get("size")
+            if page is not None and size is not None:
+                try:
+                    set_font_size_from_page(doc, int(page), int(size))
+                except Exception:
+                    pass
+    if "line_spacing_from_page" in instructions:
+        info = instructions["line_spacing_from_page"]
+        if isinstance(info, dict):
+            page = info.get("page")
+            spacing = info.get("spacing")
+            if page is not None and spacing is not None:
+                try:
+                    set_line_spacing_from_page(doc, int(page), float(spacing))
+                except Exception:
+                    pass
     if "delete_after_page" in instructions:
         try:
             delete_after_page(doc, int(instructions["delete_after_page"]))
@@ -1082,6 +1221,11 @@ def update_journal(
         delete_after_editorial(doc)
     if instructions.get("cleanup_black_lines"):
         cleanup_black_lines(doc)
+    if "autofit_table_on_page" in instructions:
+        try:
+            autofit_first_table(doc, int(instructions["autofit_table_on_page"]))
+        except Exception:
+            pass
 
     update_table_of_contents(doc)
 

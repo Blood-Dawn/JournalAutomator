@@ -62,6 +62,8 @@ The script performs a handful of automated replacements:
 8. Centers the footer layout across all pages.
 9. Inserts a simple decorative header for each imported article.
 
+
+
 Ensure your base document includes a Table of Contents with an
 **ARTICLES** heading so article titles can be detected and removed.
 
