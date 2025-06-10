@@ -448,6 +448,30 @@ def append_article(doc: Document, article_doc: Document):
         doc.element.body.append(element)
 
 
+def import_articles(doc: Document, paths: List[Path]) -> None:
+    """Append articles from ``paths`` into ``doc`` after cleaning headers."""
+    paths = sorted(paths, key=lambda p: p.name.lower())
+    for path in paths:
+        article_doc = Document(path)
+        for section in article_doc.sections:
+            header = section.header
+            footer = section.footer
+            for p in list(header.paragraphs):
+                p._element.getparent().remove(p._element)
+            for p in list(footer.paragraphs):
+                p._element.getparent().remove(p._element)
+            sectPr = section._sectPr
+            try:
+                from docx.oxml.ns import qn
+
+                for tag in ("headerReference", "footerReference"):
+                    for ref in sectPr.findall(qn(f"w:{tag}")):
+                        sectPr.remove(ref)
+            except Exception:
+                pass
+        append_article(doc, article_doc)
+
+
 def find_article_files(content_path: Path) -> List[Path]:
     """Return article files matching ``article*.docx`` case-insensitively."""
     pattern = "article"
@@ -1195,10 +1219,8 @@ def update_journal(
     files = (
         article_files if article_files is not None else find_article_files(content_path)
     )
-    for article_file in files:
-        insert_article_title(doc, article_file.stem.replace("_", " "))
-        article_doc = Document(article_file)
-        append_article(doc, article_doc)
+    import_articles(doc, files)
+
     if "font_size" in instructions:
         set_font_size(doc, start_idx, int(instructions["font_size"]))
     if "line_spacing" in instructions:
