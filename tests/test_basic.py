@@ -2,6 +2,9 @@ import sys
 import os
 import json
 
+from docx.shared import Pt
+from docx.enum.text import WD_BREAK
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import journal_updater.journal_updater as journal_updater
 
@@ -106,3 +109,70 @@ def test_format_front_and_footer(tmp_path):
     assert doc.paragraphs[0].paragraph_format.line_spacing == 1.25
     assert doc.sections[0].footer.paragraphs[0].runs[0].font.size.pt == 13
     assert doc.sections[0].footer.paragraphs[0].paragraph_format.line_spacing == 1.25
+
+
+def test_set_font_size_and_spacing_from_page():
+    doc = journal_updater.Document()
+    p1 = doc.add_paragraph("p1")
+    p1.runs[0].font.size = Pt(10)
+    p1.paragraph_format.line_spacing = 1
+    br = p1.add_run()
+    br.add_break(WD_BREAK.PAGE)
+    p2 = doc.add_paragraph("p2")
+    p2.runs[0].font.size = Pt(10)
+    p2.paragraph_format.line_spacing = 1
+    p3 = doc.add_paragraph("p3")
+    p3.runs[0].font.size = Pt(10)
+    p3.paragraph_format.line_spacing = 1
+
+    journal_updater.set_font_size_from_page(doc, 2, 16)
+    journal_updater.set_line_spacing_from_page(doc, 2, 2)
+
+    assert p1.runs[0].font.size.pt == 10
+    assert p1.paragraph_format.line_spacing == 1
+    assert p2.runs[0].font.size.pt == 16
+    assert p3.runs[0].font.size.pt == 16
+    assert p2.paragraph_format.line_spacing == 2
+    assert p3.paragraph_format.line_spacing == 2
+
+
+def test_update_journal_page_specific_formatting(tmp_path):
+    base = journal_updater.Document()
+    p1 = base.add_paragraph("Volume 1, Issue 1")
+    base.add_paragraph("").add_run().add_break(WD_BREAK.PAGE)
+    base.add_paragraph("ARTICLES")
+    base_path = tmp_path / "base.docx"
+    base.save(base_path)
+
+    content_dir = tmp_path / "content"
+    content_dir.mkdir()
+    art = journal_updater.Document()
+    art.add_paragraph("Article text")
+    art.save(content_dir / "article1.docx")
+
+    import json
+
+    (content_dir / "instructions.json").write_text(
+        json.dumps(
+            {
+                "font_size_from_page": {"page": 2, "size": 14},
+                "line_spacing_from_page": {"page": 2, "spacing": 1.5},
+            }
+        )
+    )
+
+    out_path = tmp_path / "out.docx"
+    journal_updater.update_journal(
+        base_path,
+        content_dir,
+        out_path,
+        "1",
+        "1",
+        "June 2025",
+    )
+
+    result = journal_updater.Document(out_path)
+    pages = journal_updater.map_pages_to_paragraphs(result)
+    for p in pages.get(2, []):
+        assert p.runs[0].font.size.pt == 14
+        assert p.paragraph_format.line_spacing == 1.5
