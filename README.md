@@ -11,7 +11,9 @@ Many helper functions are provided so that future automation steps can call them
 individually (e.g. `update_front_cover`, `update_page2_header`, `clear_articles`,
 and more). Most advanced operations are currently placeholders but documented
 for future work.
-Recent additions provide helpers for formatting the front cover and centering footer text across all sections.
+Recent additions provide helpers for formatting the front cover, centering
+footer text across all sections and adding optional page center lines with
+`add_page_borders_with_rule`.
 
 For non‑technical users a small Tkinter GUI is provided. Launch it with:
 
@@ -58,6 +60,7 @@ The script performs a handful of automated replacements:
    alongside it (requires `docx2pdf`).
 7. Applies optional front-cover formatting.
 8. Centers the footer layout across all pages.
+9. Inserts a vertical center rule when using `add_page_borders_with_rule`.
 
 Ensure your base document includes a Table of Contents with an
 **ARTICLES** heading so article titles can be detected and removed.

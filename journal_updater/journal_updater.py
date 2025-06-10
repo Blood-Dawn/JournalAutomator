@@ -853,6 +853,46 @@ def add_page_borders(doc: Document, start_section: int) -> None:
         sectPr.append(pgBorders)
 
 
+def add_page_borders_with_rule(
+    doc: Document, start_section: int, add_center_line: bool = False
+) -> None:
+    """Add left/right borders and optionally a vertical center line.
+
+    When ``add_center_line`` is ``True`` a vertical line shape is inserted
+    into the header of each section starting at ``start_section``.
+    """
+
+    add_page_borders(doc, start_section)
+
+    if not add_center_line:
+        return
+
+    try:
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import nsmap
+    except Exception:
+        return
+
+    nsmap.setdefault("v", "urn:schemas-microsoft-com:vml")
+
+    for idx, section in enumerate(doc.sections):
+        if idx < start_section:
+            continue
+
+        header = section.header
+        paragraph = header.add_paragraph()
+        run = paragraph.add_run()
+        pict = OxmlElement("w:pict")
+        shape = OxmlElement("v:shape")
+        shape.set(
+            "style",
+            "position:absolute;left:50%;top:0;width:0;height:100%;"
+            "border-left:1pt solid black",
+        )
+        pict.append(shape)
+        run._r.append(pict)
+
+
 def apply_footer_layout(doc: Document, volume: str, issue: str, year: str) -> None:
     """Add standardized footers and leave the first page blank."""
 
